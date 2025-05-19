@@ -6,17 +6,18 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany; // <-- Asegúrate que esté
-use Illuminate\Database\Eloquent\Relations\HasMany;       // <-- Asegúrate que esté
-// Importar modelos relacionados si no se usa ::class
-// use App\Models\Role;
-// use App\Models\Curso;
-// use App\Models\Inscripcion;
-// use App\Models\Entrega;
-// use App\Models\Material;
-// use App\Models\Tarea;
-// use App\Models\Anuncio;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage; // Para el accesor de foto
 
+// Importar modelos relacionados para las relaciones
+use App\Models\Role;
+use App\Models\Curso;
+use App\Models\Inscripcion;
+use App\Models\Entrega;
+use App\Models\Material;
+use App\Models\Tarea;
+use App\Models\Anuncio;
 
 class Usuario extends Authenticatable // implements MustVerifyEmail
 {
@@ -37,6 +38,7 @@ class Usuario extends Authenticatable // implements MustVerifyEmail
         'password',
         'telefono',
         'ruta_foto_perfil',
+        'genero', // <-- Campo Género Añadido
     ];
 
     /**
@@ -54,6 +56,27 @@ class Usuario extends Authenticatable // implements MustVerifyEmail
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
+
+    public function getFotoUrlAttribute(): string // El nombre del método debe ser get<NombreAtributo>Attribute
+    {
+        // Verifica si el usuario tiene una foto de perfil personalizada y si el archivo existe
+        if ($this->ruta_foto_perfil && Storage::disk('public')->exists($this->ruta_foto_perfil)) {
+            return Storage::url($this->ruta_foto_perfil); // Retorna la URL de la foto subida
+        }
+
+        // Si no hay foto personalizada, retorna una por defecto según el género
+        switch (strtolower($this->genero ?? '')) { // Usar strtolower para comparar y ?? '' para evitar error si es null
+            case 'femenino':
+                return asset('images/default_female_avatar.png'); // Asegúrate que esta imagen exista
+            case 'masculino':
+                return asset('images/default_male_avatar.png');  // Asegúrate que esta imagen exista
+            case 'otro':
+                return asset('images/default_other_avatar.png'); // Asegúrate que esta imagen exista
+            default:
+                // Un avatar genérico si el género no está especificado o no coincide con los casos
+                return asset('images/default_avatar.png');       // Asegúrate que esta imagen exista
+        }
+    }
 
     // --- RELACIONES ---
 
@@ -77,33 +100,27 @@ class Usuario extends Authenticatable // implements MustVerifyEmail
 
     /**
      * Las inscripciones directas de este Usuario (como estudiante).
-     * Retorna modelos Inscripcion.
      */
     public function inscripciones(): HasMany
     {
-        // La clave foránea en 'inscripciones' es 'estudiante_id'
         return $this->hasMany(Inscripcion::class, 'estudiante_id');
     }
 
     /**
      * Los cursos en los que está inscrito este Usuario (como estudiante).
-     * Accede a los cursos a través de la tabla pivote 'inscripciones'.
      */
-    public function cursosInscritos(): BelongsToMany // <-- MÉTODO AÑADIDO
+    public function cursosInscritos(): BelongsToMany
     {
-        // Modelo relacionado, tabla pivote, FK de este modelo (Usuario), FK del modelo relacionado (Curso)
         return $this->belongsToMany(Curso::class, 'inscripciones', 'estudiante_id', 'curso_id')
-                    ->withPivot('estado', 'fecha_inscripcion') // Carga columnas extra de la tabla pivote
-                    ->withTimestamps(); // Si la tabla pivote tiene timestamps
+                    ->withPivot('estado', 'fecha_inscripcion')
+                    ->withTimestamps();
     }
-
 
     /**
      * Las entregas realizadas por este Usuario (como estudiante).
      */
     public function entregasRealizadas(): HasMany
     {
-        // La clave foránea en 'entregas' es 'estudiante_id'
         return $this->hasMany(Entrega::class, 'estudiante_id');
     }
 
@@ -112,7 +129,6 @@ class Usuario extends Authenticatable // implements MustVerifyEmail
      */
     public function entregasCalificadas(): HasMany
     {
-         // La clave foránea en 'entregas' es 'calificado_por'
         return $this->hasMany(Entrega::class, 'calificado_por');
     }
 
@@ -121,7 +137,6 @@ class Usuario extends Authenticatable // implements MustVerifyEmail
      */
     public function materialesCreados(): HasMany
     {
-         // La clave foránea en 'materiales' es 'creado_por'
         return $this->hasMany(Material::class, 'creado_por');
     }
 
@@ -130,7 +145,6 @@ class Usuario extends Authenticatable // implements MustVerifyEmail
      */
     public function tareasCreadas(): HasMany
     {
-         // La clave foránea en 'tareas' es 'creado_por'
         return $this->hasMany(Tarea::class, 'creado_por');
     }
 
@@ -139,7 +153,6 @@ class Usuario extends Authenticatable // implements MustVerifyEmail
      */
     public function anunciosCreados(): HasMany
     {
-         // La clave foránea en 'anuncios' es 'creado_por'
         return $this->hasMany(Anuncio::class, 'creado_por');
     }
 
@@ -150,7 +163,6 @@ class Usuario extends Authenticatable // implements MustVerifyEmail
      */
     public function tieneRole(string $nombreRole): bool
     {
-        // Accede a la relación roles() y verifica si existe un rol con ese nombre
         return $this->roles()->where('nombre', $nombreRole)->exists();
     }
 }

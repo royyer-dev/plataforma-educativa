@@ -17,6 +17,8 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PerfilController;
 use App\Http\Controllers\Alumno\DashboardController as AlumnoDashboardController;
 use App\Http\Controllers\Docente\DashboardController as DocenteDashboardController;
+use App\Http\Controllers\Alumno\CarreraController as AlumnoCarreraController;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -53,6 +55,8 @@ Route::prefix('perfil')->name('perfil.')->group(function () {
     Route::get('/', [PerfilController::class, 'show'])->name('show');
     // Actualizar contraseña
     Route::patch('/password', [PerfilController::class, 'updatePassword'])->name('updatePassword');
+    Route::patch('/update', [PerfilController::class, 'updateProfile'])->name('update');
+    Route::patch('/picture', [PerfilController::class, 'updatePicture'])->name('updatePicture');
 
             // (Aquí podrías añadir rutas para actualizar nombre/email en el futuro);
     });
@@ -85,10 +89,19 @@ Route::middleware(['auth', 'role:estudiante'])
         // Dashboard
         Route::get('/dashboard', [AlumnoDashboardController::class, 'index'])->name('dashboard');
 
-        // Ver Cursos Disponibles
-        Route::get('/cursos', [AlumnoCursoController::class, 'index'])->name('cursos.index');
+        // Ver lista de todas las carreras
+        Route::get('/carreras', [AlumnoCarreraController::class, 'index'])->name('carreras.index');
+        
+        // Ver cursos DE UNA CARRERA específica
+        Route::get('/carreras/{carrera}/cursos', [AlumnoCursoController::class, 'index'])->name('cursos.index');
 
-        // Ver Detalles de un Curso
+        // Ver entregas en general
+        //Route::get('/mis-entregas', [AlumnoDashboardController::class, 'agendaEntregas'])->name('entregas.agenda');
+
+        // Agenda de Tareas
+         Route::get('/agenda-tareas', [\App\Http\Controllers\Alumno\AgendaController::class, 'index'])->name('agenda.index');
+
+        // Ver Detalles de un Curso específico (el acceso será desde la lista de cursos por carrera)
         Route::get('/cursos/{curso}', [AlumnoCursoController::class, 'show'])->name('cursos.show');
 
         // Solicitar Inscripción a Curso
@@ -107,12 +120,13 @@ Route::middleware(['auth', 'role:estudiante'])
         Route::post('/cursos/{curso}/tareas/{tarea}/entregar', [AlumnoTareaController::class, 'storeEntrega'])
              ->name('cursos.tareas.storeEntrega');
 
-        // Ver Entregas de Tarea
+        // Mis Calificaciones
         Route::get('/calificaciones', [CalificacionController::class, 'index'])
              ->name('calificaciones.index');
         // (Otras rutas de alumno...)
 
 });
+
 
 
 // --- Grupo de Rutas para DOCENTES ---
@@ -124,9 +138,13 @@ Route::middleware(['auth', 'role:docente'])
         // Dashboard (Usar solo la definición con controlador)
         Route::get('/dashboard', [DocenteDashboardController::class, 'index'])->name('dashboard');
 
-        // --- Prueba Diagnóstica: Definir ruta index explícitamente ---
+        // Ver Cursos que imparte el docente
         Route::get('/cursos', [DocenteCursoController::class, 'index'])->name('cursos.index');
-        // --- Fin Prueba ---
+
+        // Ver todos los estudiantes
+        Route::get('/mis-estudiantes', [DocenteDashboardController::class, 'verTodosEstudiantes'])->name('estudiantes.generales');
+
+        Route::get('/entregas-por-calificar', [DocenteDashboardController::class, 'verEntregasPorCalificar'])->name('entregas.porCalificar');
 
         // CRUD Cursos
         Route::resource('cursos', DocenteCursoController::class);
@@ -135,6 +153,7 @@ Route::middleware(['auth', 'role:docente'])
         Route::get('/cursos/{curso}/estudiantes', [DocenteCursoController::class, 'verEstudiantes'])->name('cursos.estudiantes.index');
         Route::get('/cursos/{curso}/estudiantes/{estudiante}', [DocenteCursoController::class, 'verDetallesEstudiante'])->name('cursos.estudiantes.show');
         Route::delete('/cursos/{curso}/estudiantes/{estudiante}', [DocenteCursoController::class, 'darDeBajaEstudiante'])->name('cursos.estudiantes.destroy');
+        
 
         // CRUD Módulos
         Route::get('/cursos/{curso}/modulos/create', [ModuloController::class, 'create'])->name('cursos.modulos.create');

@@ -13,61 +13,65 @@ use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
 use App\Notifications\NuevaSolicitudInscripcionNotification;
 use App\Notifications\AlumnoSalioCursoNotification;
+use Illuminate\Support\Collection;
+use Carbon\Carbon; // Para manejo de fechas
+use App\Models\Tarea; // Asegúrate de importar el modelo Tarea
 
-class CursoController extends Controller
+class CarreraController extends Controller
 {
     /**
-     * Muestra una lista de los cursos publicados disponibles PARA UNA CARRERA ESPECÍFICA.
-     * Indica el estado de inscripción del estudiante actual para cada curso.
-     * Ruta: GET /alumno/carreras/{carrera}/cursos
-     * Nombre: alumno.cursos.index
+     * Muestra una lista de todas las carreras que tienen cursos publicados.
+     * Ruta: GET /alumno/carreras
+     * Nombre: alumno.carreras.index
      */
-    public function index(Carrera $carrera): View // <-- $carrera se recibe aquí por Route Model Binding
+    public function index(): View
     {
         $estudiante = Auth::user();
 
-        // Obtener los cursos publicados que pertenecen a la carrera especificada
-        $cursosDeLaCarrera = $carrera->cursos() // Usa la relación definida en el modelo Carrera
-                                      ->where('estado', 'publicado')
-                                      ->with('profesores') // Cargar profesores para mostrar
-                                      ->orderBy('titulo')
-                                      ->paginate(12); // Paginar resultados
+        // 1. Obtener las inscripciones ACTIVAS del estudiante con sus cursos y carreras
+        $inscripcionesActivas = $estudiante->inscripciones()
+            ->where('estado', 'activo')
+            ->with(['curso.carrera', 'curso.profesores']) // Eager load para eficiencia
+            ->get();
 
-        // Obtener TODAS las inscripciones del estudiante actual
-        $inscripcionesEstudiante = $estudiante->inscripciones()
-                                              ->get()
-                                              ->keyBy('curso_id');
+        // 2. Agrupar los CURSOS ACTIVOS por el ID de su carrera
+        $cursosActivosPorCarreraId = $inscripcionesActivas
+            ->map(function ($inscripcion) {
+                return $inscripcion->curso; // Nos interesa el objeto Curso
+            })
+            ->filter(function ($curso) { // Asegurarse que el curso y su carrera existan
+                return $curso && $curso->carrera;
+            })
+            ->groupBy(function ($curso) {
+                return $curso->carrera->id; // Agrupar por ID de la carrera
+            });
 
-        // Pasar la carrera, sus cursos, y las inscripciones del estudiante a la vista
-        return view('alumno.cursos.index', compact('carrera', 'cursosDeLaCarrera', 'inscripcionesEstudiante'));
-    }
-
-    /**
-     * Muestra los detalles (contenido) de un curso específico si el estudiante está inscrito y activo.
-     */
-    public function show(Curso $curso): View | RedirectResponse
-    {
-        $estudiante = Auth::user();
-        $inscripcion = $estudiante->inscripciones()
-                                  ->where('curso_id', $curso->id)
-                                  ->where('estado', 'activo')
-                                  ->first();
-
-        if (!$inscripcion) {
-             return redirect()->route('alumno.carreras.index') // Redirige a la lista de carreras
-                              ->with('error', 'No estás inscrito en este curso o tu inscripción no está activa.');
+        // 3. Obtener los modelos Carrera para las carreras donde el estudiante tiene cursos activos
+        $idsCarrerasConCursosActivos = $cursosActivosPorCarreraId->keys()->all();
+        $carrerasConCursosActivos = collect();
+        if (!empty($idsCarrerasConCursosActivos)) {
+            $carrerasConCursosActivos = Carrera::whereIn('id', $idsCarrerasConCursosActivos)
+                                        ->orderBy('nombre')
+                                        ->get();
         }
 
-        $curso->load([
-            'profesores', 'carrera', // Asegúrate de cargar 'carrera' también
-            'modulos' => function ($query) { $query->orderBy('orden'); },
-            'modulos.materiales' => function ($query) { $query->orderBy('orden'); },
-            'modulos.tareas' => function ($query) { $query->orderBy('fecha_limite'); },
-            'materiales' => function ($query) { $query->whereNull('modulo_id')->orderBy('orden'); },
-            'tareas' => function ($query) { $query->whereNull('modulo_id')->orderBy('fecha_limite'); }
-        ]);
+        // 4. Obtener TODAS las carreras que tienen al menos un curso PUBLICADO,
+        //    para la sección "Explorar Otras Carreras".
+        //    También contamos los cursos publicados para cada una.
+        $todasLasCarrerasParaExplorar = Carrera::whereHas('cursos', function ($query) {
+                $query->where('estado', 'publicado');
+            })
+            ->withCount(['cursos' => function ($query) { // Contar solo cursos publicados
+                $query->where('estado', 'publicado');
+            }])
+            ->orderBy('nombre')
+            ->get();
 
-        return view('alumno.cursos.show', compact('curso', 'inscripcion'));
+        return view('alumno.carreras.index', compact(
+            'carrerasConCursosActivos',
+            'cursosActivosPorCarreraId',
+            'todasLasCarrerasParaExplorar'
+        ));
     }
 
     /**
@@ -78,8 +82,7 @@ class CursoController extends Controller
         $estudiante = Auth::user();
 
         if ($curso->estado !== 'publicado') {
-            // Redirige a la lista de cursos de la carrera específica
-            return redirect()->route('alumno.cursos.index', ['carrera' => $curso->carrera_id])
+            return redirect()->route('alumno.carreras.cursos.index', $curso->carrera_id) // Corregido para volver a cursos de la carrera
                              ->with('error', 'Este curso no está disponible para inscripción.');
         }
 
@@ -88,8 +91,7 @@ class CursoController extends Controller
                                         ->exists();
 
         if ($existeInscripcion) {
-             // Redirige a la lista de cursos de la carrera específica
-             return redirect()->route('alumno.cursos.index', ['carrera' => $curso->carrera_id])
+             return redirect()->route('alumno.carreras.cursos.index', $curso->carrera_id) // Corregido
                               ->with('error', 'Ya tienes una inscripción o solicitud para este curso.');
         }
 
@@ -98,7 +100,7 @@ class CursoController extends Controller
              'estado' => 'pendiente',
         ]);
 
-        $inscripcion->load(['estudiante', 'curso.profesores']);
+        $inscripcion->load(['estudiante', 'curso.profesores']); // Asegurar que profesores se cargue a través de curso
         $profesores = $inscripcion->curso->profesores;
 
         if ($profesores->isNotEmpty()) {
@@ -109,8 +111,7 @@ class CursoController extends Controller
             }
         }
 
-        // Redirige a la lista de cursos de la carrera específica
-        return redirect()->route('alumno.cursos.index', ['carrera' => $curso->carrera_id])
+        return redirect()->route('alumno.carreras.cursos.index', $curso->carrera_id) // Corregido
                          ->with('status', '¡Solicitud de inscripción enviada exitosamente!');
     }
 

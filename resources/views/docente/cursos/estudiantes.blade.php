@@ -4,9 +4,9 @@
 <div class="container">
     {{-- Navegación para volver a los detalles del curso --}}
     <div class="mb-3">
-        <a href="{{ route('docente.cursos.index') }}" class="btn btn-secondary btn-sm">
+        <a href="{{ route('docente.cursos.show', $curso->id) }}" class="btn btn-secondary btn-sm">
             <i class="fas fa-arrow-left me-1"></i> {{-- Icono opcional --}}
-            Volver a Cursos
+            Volver a Detalles del Curso
         </a>
     </div>
 
@@ -40,33 +40,31 @@
                         <th>Nombre(s)</th>
                         <th>Correo Electrónico</th>
                         <th>Fecha Inscripción</th>
-                        {{-- <th>Promedio General</th> --}} {{-- Placeholder --}}
+                        {{-- <th>Promedio General</th> --}} {{-- Placeholder para futuro --}}
                         <th class="text-center">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     {{-- Iterar sobre la colección de estudiantes activos --}}
-                    @foreach ($estudiantesInscritos as $estudiante)
+                    @foreach ($estudiantesInscritos as $estudiante_item) {{-- Usar una variable de bucle diferente --}}
                         <tr>
-                            <td>{{ $loop->iteration }}</td>
-                            <td>{{ $estudiante->apellidos ?? '--' }}</td>
-                            <td>{{ $estudiante->nombre }}</td>
-                            <td>{{ $estudiante->email }}</td>
-                            {{-- Formatear fecha usando Carbon::parse --}}
+                            <td>{{ $loop->iteration }}</td> {{-- Número de fila --}}
+                            <td>{{ $estudiante_item->apellidos ?? '--' }}</td>
+                            <td>{{ $estudiante_item->nombre }}</td>
+                            <td>{{ $estudiante_item->email }}</td>
+                            {{-- Acceder a la fecha desde la tabla pivote 'inscripciones' --}}
                             <td>
-                                @if(optional($estudiante->pivot)->fecha_inscripcion)
-                                    {{ \Carbon\Carbon::parse(optional($estudiante->pivot)->fecha_inscripcion)->format('d/m/Y') }}
+                                @if(optional($estudiante_item->pivot)->fecha_inscripcion)
+                                    {{ \Carbon\Carbon::parse(optional($estudiante_item->pivot)->fecha_inscripcion)->format('d/m/Y') }}
                                 @else
                                     N/A
                                 @endif
                             </td>
                             {{-- <td> -- Placeholder -- </td> --}}
                             <td class="text-center text-nowrap">
-                                {{-- vvv BOTÓN MODIFICADO vvv --}}
-                                {{-- Enlace a la nueva ruta para ver detalles del estudiante en este curso --}}
-                                <a href="{{ route('docente.cursos.estudiantes.show', [$curso->id, $estudiante->id]) }}" class="btn btn-info btn-sm">Ver Detalles</a>
-                                {{-- ^^^ FIN BOTÓN MODIFICADO ^^^ --}}
-                                {{-- Aquí podríamos añadir el botón "Dar de Baja" funcional más adelante --}}
+                                {{-- Enlace a la ruta para ver detalles del estudiante en este curso --}}
+                                <a href="{{ route('docente.cursos.estudiantes.show', [$curso->id, $estudiante_item->id]) }}" class="btn btn-info btn-sm">Ver Detalles</a>
+
                             </td>
                         </tr>
                     @endforeach
@@ -74,7 +72,7 @@
             </table>
         </div>
 
-        {{-- Paginación (si aplica) --}}
+        {{-- Si usaste paginación en el controlador, añádela aquí --}}
         {{-- <div class="mt-3">
             {{ $estudiantesInscritos->links() }}
         </div> --}}

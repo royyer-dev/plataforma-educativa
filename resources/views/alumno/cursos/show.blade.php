@@ -1,58 +1,98 @@
-@extends('layouts.app') {{-- Usa el layout principal --}}
+@extends('layouts.app')
 
 @section('content')
-<div class="container">
-    {{-- Botón para Volver al Listado de Cursos del Alumno --}}
-    <div class="mb-3">
-        <a href="{{ route('alumno.cursos.index') }}" class="btn btn-secondary btn-sm">&laquo; Volver a Cursos Disponibles</a>
-    </div>
+<div class="container py-4">
 
-    {{-- Título e Información Básica del Curso --}}
-    <div class="card mb-4">
+    {{-- Breadcrumbs para mejor navegación --}}
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ route('alumno.dashboard') }}">Dashboard</a></li>
+            {{-- Asumimos que $curso->carrera existe y está cargado --}}
+            @if(optional($curso->carrera)->id)
+                <li class="breadcrumb-item"><a href="{{ route('alumno.carreras.index') }}">Carreras</a></li>
+                <li class="breadcrumb-item"><a href="{{ route('alumno.cursos.index', ['carrera' => $curso->carrera->id]) }}">{{ $curso->carrera->nombre }}</a></li>
+            @else
+                 {{-- Fallback si no hay carrera, podría enlazar a una lista general de cursos si existiera --}}
+                 <li class="breadcrumb-item"><a href="{{ route('alumno.carreras.index') }}">Cursos</a></li>
+            @endif
+            <li class="breadcrumb-item active" aria-current="page">{{ Str::limit($curso->titulo, 30) }}</li>
+        </ol>
+    </nav>
+
+    {{-- Mensajes Flash --}}
+    @if (session('status'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ session('status') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+    @if (session('error'))
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
+    {{-- Encabezado del Curso con Imagen --}}
+    <div class="card shadow-lg mb-4 overflow-hidden">
+        @if($curso->ruta_imagen_curso)
+            {{-- vvv ALTURA DE IMAGEN MODIFICADA vvv --}}
+            <img src="{{ Storage::url($curso->ruta_imagen_curso) }}" class="card-img-top" alt="Imagen de {{ $curso->titulo }}" style="height: 200px; object-fit: cover;">
+            {{-- ^^^ FIN MODIFICACIÓN ^^^ --}}
+        @else
+            {{-- vvv ALTURA DE PLACEHOLDER MODIFICADA vvv --}}
+            <div class="bg-secondary text-white d-flex align-items-center justify-content-center" style="height: 200px;">
+            {{-- ^^^ FIN MODIFICACIÓN ^^^ --}}
+                <i class="fas fa-chalkboard-teacher fa-5x opacity-50"></i>
+            </div>
+        @endif
         <div class="card-body">
-            <h1 class="card-title">{{ $curso->titulo }}</h1>
-            <h6 class="card-subtitle mb-2 text-muted">
-                Profesor(es):
+            <h1 class="card-title display-5">{{ $curso->titulo }}</h1>
+            <p class="card-text text-muted">
+                <i class="fas fa-graduation-cap me-1"></i> Carrera: {{ optional($curso->carrera)->nombre ?? 'No especificada' }}
+            </p>
+            <p class="card-text">
+                <i class="fas fa-user-tie me-1"></i> Profesor(es):
                 @if($curso->profesores && $curso->profesores->count() > 0)
                     {{ $curso->profesores->pluck('nombre')->implode(', ') }}
                 @else
                     No asignado
                 @endif
-            </h6>
+            </p>
             @if($curso->descripcion)
                 <p class="card-text mt-3">{!! nl2br(e($curso->descripcion)) !!}</p>
             @endif
-             {{-- Puedes añadir más info si quieres: categoría, fechas, etc. --}}
         </div>
     </div>
 
     {{-- Contenido del Curso: Módulos, Materiales, Tareas --}}
-    {{-- (Secciones de Módulos, Materiales, Tareas - Sin cambios respecto a la versión anterior) --}}
+    <h3 class="mb-3"><i class="fas fa-stream me-2"></i>Contenido del Curso</h3>
 
-    {{-- Primero, mostrar materiales/tareas generales (sin módulo) si existen --}}
     @php
         $materialesGenerales = $curso->materiales->whereNull('modulo_id');
         $tareasGenerales = $curso->tareas->whereNull('modulo_id');
     @endphp
 
+    {{-- Contenido General (si existe) --}}
     @if($materialesGenerales->isNotEmpty() || $tareasGenerales->isNotEmpty())
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5>Contenido General del Curso</h5>
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light">
+                <h5 class="mb-0"><i class="fas fa-folder-open me-2"></i>Contenido General del Curso</h5>
             </div>
             <div class="card-body">
                 @if($materialesGenerales->isNotEmpty())
-                    <h6>Materiales Generales</h6>
-                    <ul class="list-unstyled">
+                    <h6 class="text-primary"><i class="fas fa-book me-2"></i>Materiales Generales:</h6>
+                    <ul class="list-unstyled ps-3">
                         @foreach($materialesGenerales->sortBy('orden') as $material)
                             <li>@include('alumno.cursos._material_item', ['material' => $material, 'curso' => $curso])</li>
                         @endforeach
                     </ul>
-                    @if($tareasGenerales->isNotEmpty()) <hr> @endif
+                    @if($tareasGenerales->isNotEmpty()) <hr class="my-3"> @endif
                 @endif
+
                  @if($tareasGenerales->isNotEmpty())
-                    <h6>Tareas Generales</h6>
-                    <ul class="list-unstyled">
+                    <h6 class="text-info"><i class="fas fa-clipboard-list me-2"></i>Tareas Generales:</h6>
+                    <ul class="list-unstyled ps-3">
                         @foreach($tareasGenerales->sortBy('fecha_limite') as $tarea)
                             <li>@include('alumno.cursos._tarea_item', ['tarea' => $tarea, 'curso' => $curso])</li>
                         @endforeach
@@ -62,76 +102,82 @@
         </div>
     @endif
 
-    {{-- Luego, iterar sobre los Módulos --}}
+    {{-- Módulos (usando Acordeón de Bootstrap) --}}
     @if($curso->modulos && $curso->modulos->count() > 0)
-        @foreach($curso->modulos->sortBy('orden') as $modulo)
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5>Módulo {{ $modulo->orden ?? $loop->iteration }}: {{ $modulo->titulo }}</h5>
+        <div class="accordion shadow-sm" id="accordionModulos">
+            @foreach($curso->modulos->sortBy('orden') as $index => $modulo)
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingModulo{{ $modulo->id }}">
+                        <button class="accordion-button {{ $index == 0 ? '' : 'collapsed' }}" type="button" data-bs-toggle="collapse" data-bs-target="#collapseModulo{{ $modulo->id }}" aria-expanded="{{ $index == 0 ? 'true' : 'false' }}" aria-controls="collapseModulo{{ $modulo->id }}">
+                            <i class="fas fa-sitemap me-2"></i>
+                            <strong>Módulo {{ $modulo->orden ?? $loop->iteration }}: {{ $modulo->titulo }}</strong>
+                        </button>
+                    </h2>
+                    <div id="collapseModulo{{ $modulo->id }}" class="accordion-collapse collapse {{ $index == 0 ? 'show' : '' }}" aria-labelledby="headingModulo{{ $modulo->id }}" data-bs-parent="#accordionModulos">
+                        <div class="accordion-body">
+                            @if($modulo->descripcion)
+                                <p>{{ $modulo->descripcion }}</p>
+                                <hr>
+                            @endif
+
+                            @if($modulo->materiales && $modulo->materiales->count() > 0)
+                                <h6 class="text-primary"><i class="fas fa-book me-2"></i>Materiales del Módulo:</h6>
+                                <ul class="list-unstyled ps-3">
+                                    @foreach($modulo->materiales->sortBy('orden') as $material)
+                                        <li>@include('alumno.cursos._material_item', ['material' => $material, 'curso' => $curso])</li>
+                                    @endforeach
+                                </ul>
+                            @else
+                                <p class="text-muted small"><em>No hay materiales en este módulo.</em></p>
+                            @endif
+
+                            @if($modulo->tareas && $modulo->tareas->count() > 0)
+                                <h6 class="mt-3 text-info"><i class="fas fa-clipboard-list me-2"></i>Tareas del Módulo:</h6>
+                                <ul class="list-unstyled ps-3">
+                                     @foreach($modulo->tareas->sortBy('fecha_limite') as $tarea)
+                                        <li>@include('alumno.cursos._tarea_item', ['tarea' => $tarea, 'curso' => $curso])</li>
+                                    @endforeach
+                                </ul>
+                            @else
+                                 <p class="text-muted small mt-3"><em>No hay tareas en este módulo.</em></p>
+                            @endif
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body">
-                    @if($modulo->descripcion)
-                        <p>{{ $modulo->descripcion }}</p>
-                        <hr>
-                    @endif
-                    {{-- Listar Materiales dentro del Módulo --}}
-                    @if($modulo->materiales && $modulo->materiales->count() > 0)
-                        <h6>Materiales del Módulo</h6>
-                        <ul class="list-unstyled">
-                            @foreach($modulo->materiales->sortBy('orden') as $material)
-                                <li>@include('alumno.cursos._material_item', ['material' => $material, 'curso' => $curso])</li>
-                            @endforeach
-                        </ul>
-                    @endif
-                    {{-- Listar Tareas dentro del Módulo --}}
-                    @if($modulo->tareas && $modulo->tareas->count() > 0)
-                        <h6 class="mt-3">Tareas del Módulo</h6>
-                        <ul class="list-unstyled">
-                             @foreach($modulo->tareas->sortBy('fecha_limite') as $tarea)
-                                <li>@include('alumno.cursos._tarea_item', ['tarea' => $tarea, 'curso' => $curso])</li>
-                            @endforeach
-                        </ul>
-                    @endif
-                </div>
-            </div>
-        @endforeach
+            @endforeach
+        </div>
     @else
         @if($materialesGenerales->isEmpty() && $tareasGenerales->isEmpty())
-             <div class="alert alert-info">Este curso no tiene contenido publicado todavía.</div>
+             <div class="alert alert-light text-center shadow-sm" role="alert">
+                <i class="fas fa-info-circle fa-2x mb-2 d-block text-primary"></i>
+                Este curso no tiene contenido publicado todavía.
+            </div>
         @endif
     @endif
 
-    {{-- vvv INICIO: Sección Salir del Curso Modificada vvv --}}
-    <hr class="my-4">
-    <div class="text-end"> {{-- Alinea el botón a la derecha --}}
-        {{-- Botón que abre el Modal --}}
-        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#modalSalirCurso">
-            Salir de este Curso
+    {{-- Sección Salir del Curso (Modal) --}}
+    <hr class="my-5"> {{-- Más separación --}}
+    <div class="text-center mb-4"> {{-- Centrar botón --}}
+        <button type="button" class="btn btn-outline-danger btn-lg" data-bs-toggle="modal" data-bs-target="#modalSalirCurso">
+            <i class="fas fa-sign-out-alt me-2"></i>Salir de este Curso
         </button>
     </div>
-
-    {{-- Modal para Confirmar Salida del Curso --}}
     <div class="modal fade" id="modalSalirCurso" tabindex="-1" aria-labelledby="modalSalirCursoLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
+        <div class="modal-dialog modal-dialog-centered"> {{-- Centrar modal --}}
+            <div class="modal-content shadow-lg">
                 <div class="modal-header bg-danger text-white">
-                    <h5 class="modal-title" id="modalSalirCursoLabel">Confirmar Salida del Curso</h5>
+                    <h5 class="modal-title" id="modalSalirCursoLabel"><i class="fas fa-exclamation-triangle me-2"></i>Confirmar Salida del Curso</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                {{-- Formulario dentro del modal --}}
                 <form id="form-salir-curso" action="{{ route('alumno.cursos.salir', $curso->id) }}" method="POST">
                     @csrf
-                    @method('DELETE') {{-- Indica método DELETE --}}
+                    @method('DELETE')
                     <div class="modal-body">
-                        <p class="text-danger"><strong>¡Atención!</strong> Si sales de este curso, perderás el acceso a su contenido y tus entregas podrían ser eliminadas. Esta acción no se puede deshacer fácilmente.</p>
-                        <div class="mb-3">
+                        <p>Si sales de este curso, perderás el acceso a su contenido y tus entregas podrían ser eliminadas. Esta acción no se puede deshacer fácilmente.</p>
+                        <p class="fw-bold">¿Estás seguro de querer continuar?</p>
+                        <div class="mb-3 mt-3">
                             <label for="password_confirmacion_modal" class="form-label">Confirma tu contraseña para salir <span class="text-danger">*</span></label>
-                            {{-- Usamos un ID diferente para el input dentro del modal --}}
                             <input type="password" class="form-control @error('password_confirmacion') is-invalid @enderror" id="password_confirmacion_modal" name="password_confirmacion" required>
-                            {{-- Mostrar error específico si la contraseña falla --}}
-                            {{-- Nota: Si la validación falla, la página se recargará y el modal no se abrirá automáticamente.
-                                 El error se mostrará si lo vuelves a abrir o si lo pones fuera del modal también.
-                                 Una solución más avanzada usaría AJAX, pero esto es más simple. --}}
                             @error('password_confirmacion')
                                 <div class="invalid-feedback d-block">{{ $message }}</div>
                             @enderror
@@ -145,8 +191,6 @@
             </div>
         </div>
     </div>
-    {{-- ^^^ FIN: Sección Salir del Curso Modificada ^^^ --}}
-
 
 </div> {{-- Fin container --}}
 @endsection

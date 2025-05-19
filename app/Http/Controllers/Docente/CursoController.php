@@ -1,11 +1,11 @@
 <?php
 
-// Namespace correcto para el controlador del Docente
 namespace App\Http\Controllers\Docente;
 
 use App\Http\Controllers\Controller;
 use App\Models\Curso;
-use App\Models\Categoria;
+use App\Models\Categoria; // Cambiar a Carrera si ya hiciste ese refactor
+use App\Models\Carrera;  // Asumiendo que ya hiciste el cambio a Carrera
 use App\Models\Usuario;
 use App\Models\Inscripcion;
 use App\Models\Modulo;
@@ -13,6 +13,7 @@ use App\Models\Tarea;
 use App\Models\Entrega;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage; // <-- AÑADIDO para manejo de archivos
 use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
 
@@ -25,6 +26,7 @@ class CursoController extends Controller
     {
         $docente = Auth::user();
         $cursos = $docente->cursosImpartidos()
+                          ->with('carrera') // Usar 'carrera' si ya hiciste el cambio
                           ->orderBy('titulo')
                           ->paginate(10);
         return view('docente.cursos.index', compact('cursos'));
@@ -35,8 +37,9 @@ class CursoController extends Controller
      */
     public function create(): View
     {
-        $categorias = Categoria::orderBy('nombre')->pluck('nombre', 'id');
-        return view('docente.cursos.create', compact('categorias'));
+        // Usar Carrera en lugar de Categoria si ya hiciste el cambio
+        $carreras = Carrera::orderBy('nombre')->pluck('nombre', 'id');
+        return view('docente.cursos.create', compact('carreras'));
     }
 
     /**
@@ -48,14 +51,27 @@ class CursoController extends Controller
             'titulo' => 'required|string|max:255',
             'codigo_curso' => 'nullable|string|max:20|unique:cursos,codigo_curso',
             'descripcion' => 'nullable|string',
-            'categoria_id' => 'nullable|integer|exists:categorias,id',
+            'carrera_id' => 'nullable|integer|exists:carreras,id', // Usar carrera_id y carreras
             'estado' => 'required|in:borrador,publicado,archivado',
             'fecha_inicio' => 'nullable|date',
             'fecha_fin' => 'nullable|date|after_or_equal:fecha_inicio',
+            'ruta_imagen_curso' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048', // Validación para la imagen
         ]);
+
         $docente = Auth::user();
+
+        // --- vvv MANEJO DE SUBIDA DE IMAGEN vvv ---
+        if ($request->hasFile('ruta_imagen_curso')) {
+            // Guardar la imagen en 'storage/app/public/cursos_imagenes'
+            // El método store devuelve la ruta relativa al disco 'public'
+            $path = $request->file('ruta_imagen_curso')->store('cursos_imagenes', 'public');
+            $validatedData['ruta_imagen_curso'] = $path; // Guardar la ruta en los datos validados
+        }
+        // --- ^^^ FIN MANEJO DE IMAGEN ^^^ ---
+
         $curso = Curso::create($validatedData);
         $curso->profesores()->attach($docente->id);
+
         return redirect()->route('docente.cursos.index')
                          ->with('status', '¡Curso creado exitosamente!');
     }
@@ -66,7 +82,7 @@ class CursoController extends Controller
     public function show(Curso $curso): View
     {
         $this->authorizeTeacherAccess($curso);
-        $curso->load(['categoria', 'profesores', 'modulos', 'materiales.modulo', 'tareas.modulo']);
+        $curso->load(['carrera', 'profesores', 'modulos', 'materiales.modulo', 'tareas.modulo']); // Usar 'carrera'
         return view('docente.cursos.show', compact('curso'));
     }
 
@@ -76,9 +92,9 @@ class CursoController extends Controller
     public function edit(Curso $curso): View
     {
         $this->authorizeTeacherAccess($curso);
-        $categorias = Categoria::orderBy('nombre')->pluck('nombre', 'id');
+        $carreras = Carrera::orderBy('nombre')->pluck('nombre', 'id'); // Usar Carrera
         $estados = ['borrador' => 'Borrador', 'publicado' => 'Publicado', 'archivado' => 'Archivado'];
-        return view('docente.cursos.edit', compact('curso', 'categorias', 'estados'));
+        return view('docente.cursos.edit', compact('curso', 'carreras', 'estados')); // Usar carreras
     }
 
     /**
@@ -91,12 +107,27 @@ class CursoController extends Controller
             'titulo' => 'required|string|max:255',
             'codigo_curso' => 'nullable|string|max:20|unique:cursos,codigo_curso,' . $curso->id,
             'descripcion' => 'nullable|string',
-            'categoria_id' => 'nullable|integer|exists:categorias,id',
+            'carrera_id' => 'nullable|integer|exists:carreras,id', // Usar carrera_id y carreras
             'estado' => 'required|in:borrador,publicado,archivado',
             'fecha_inicio' => 'nullable|date',
             'fecha_fin' => 'nullable|date|after_or_equal:fecha_inicio',
+            'ruta_imagen_curso' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048', // Validación para la imagen
         ]);
+
+        // --- vvv MANEJO DE ACTUALIZACIÓN DE IMAGEN vvv ---
+        if ($request->hasFile('ruta_imagen_curso')) {
+            // 1. Borrar la imagen antigua si existe
+            if ($curso->ruta_imagen_curso) {
+                Storage::disk('public')->delete($curso->ruta_imagen_curso);
+            }
+            // 2. Guardar la nueva imagen
+            $path = $request->file('ruta_imagen_curso')->store('cursos_imagenes', 'public');
+            $validatedData['ruta_imagen_curso'] = $path;
+        }
+        // --- ^^^ FIN MANEJO DE IMAGEN ^^^ ---
+
         $curso->update($validatedData);
+
         return redirect()->route('docente.cursos.show', $curso->id)
                          ->with('status', '¡Curso actualizado exitosamente!');
     }
@@ -107,30 +138,32 @@ class CursoController extends Controller
     public function destroy(Curso $curso): RedirectResponse
     {
         $this->authorizeTeacherAccess($curso);
+        // --- vvv BORRAR IMAGEN AL ELIMINAR CURSO vvv ---
+        if ($curso->ruta_imagen_curso) {
+            Storage::disk('public')->delete($curso->ruta_imagen_curso);
+        }
+        // --- ^^^ FIN BORRAR IMAGEN ^^^ ---
         $curso->delete();
         return redirect()->route('docente.cursos.index')
                          ->with('status', '¡Curso eliminado exitosamente!');
     }
 
-    /**
-     * Muestra la lista de estudiantes inscritos y activos en un curso específico.
-     */
+    // ... (métodos verEstudiantes, verDetallesEstudiante, darDeBajaEstudiante, authorizeTeacherAccess) ...
+    // (Asegúrate que estos métodos estén como en la última versión que te pasé)
+
     public function verEstudiantes(Curso $curso): View
     {
-        $this->authorizeTeacherAccess($curso);
-        $estudiantesInscritos = $curso->estudiantes()
-                                     ->wherePivot('estado', 'activo')
-                                     ->orderBy('apellidos')
-                                     ->orderBy('nombre')
-                                     ->get();
-        // vvv CORRECCIÓN: Usar el nombre de vista correcto sin '.index' vvv
-        return view('docente.cursos.estudiantes', compact('curso', 'estudiantesInscritos'));
-        // ^^^ FIN CORRECCIÓN ^^^
+    $this->authorizeTeacherAccess($curso);
+    $estudiantesInscritos = $curso->estudiantes()
+                                 ->wherePivot('estado', 'activo')
+                                 ->orderBy('apellidos')
+                                 ->orderBy('nombre')
+                                 ->get();
+    // vvv CORRECCIÓN AQUÍ vvv
+    return view('docente.cursos.estudiantes', compact('curso', 'estudiantesInscritos'));
+    // ^^^ FIN CORRECCIÓN ^^^
     }
 
-    /**
-     * Muestra detalles y progreso de un estudiante en el curso.
-     */
     public function verDetallesEstudiante(Curso $curso, Usuario $estudiante): View | RedirectResponse
     {
         $this->authorizeTeacherAccess($curso);
@@ -141,21 +174,17 @@ class CursoController extends Controller
             return redirect()->route('docente.cursos.estudiantes.index', $curso->id)
                              ->with('error', 'Este estudiante no está inscrito o activo en el curso.');
         }
-
         $tareasDelCurso = $curso->tareas()->with('modulo')->orderBy('fecha_limite')->get();
         $tareasIds = $tareasDelCurso->pluck('id');
-
         $entregasEstudiante = $estudiante->entregasRealizadas()
                                          ->whereIn('tarea_id', $tareasIds)
                                          ->with('tarea')
                                          ->get()
                                          ->keyBy('tarea_id');
-
-        // Calcular Promedios
+        // Calcular Promedios... (lógica de promedios)
         $promedioGeneral = 0; $totalPuntosPosiblesGeneral = 0; $totalPuntosObtenidosGeneral = 0;
         $promediosPorModulo = []; $modulosDelCurso = $curso->modulos()->orderBy('orden')->get();
         $entregasCalificadas = $entregasEstudiante->whereNotNull('calificacion');
-
         foreach ($modulosDelCurso as $modulo) {
             $tareasDelModulo = $tareasDelCurso->where('modulo_id', $modulo->id);
             $totalPuntosPosiblesModulo = 0; $totalPuntosObtenidosModulo = 0;
@@ -172,7 +201,6 @@ class CursoController extends Controller
             $promediosPorModulo[$modulo->id] = ['titulo' => $modulo->titulo, 'promedio' => $promedioModulo, 'obtenidos' => $totalPuntosObtenidosModulo, 'posibles' => $totalPuntosPosiblesModulo];
             $totalPuntosObtenidosGeneral += $totalPuntosObtenidosModulo; $totalPuntosPosiblesGeneral += $totalPuntosPosiblesModulo;
         }
-
         $tareasSinModulo = $tareasDelCurso->whereNull('modulo_id');
         $totalPuntosPosiblesSinModulo = 0; $totalPuntosObtenidosSinModulo = 0;
         foreach ($tareasSinModulo as $tarea) {
@@ -193,9 +221,6 @@ class CursoController extends Controller
         ));
     }
 
-    /**
-     * Elimina la inscripción de un estudiante específico de un curso.
-     */
     public function darDeBajaEstudiante(Request $request, Curso $curso, Usuario $estudiante): RedirectResponse
     {
         $this->authorizeTeacherAccess($curso);
@@ -211,7 +236,6 @@ class CursoController extends Controller
                          ->with('status', 'Estudiante ' . $estudiante->nombre . ' dado de baja del curso exitosamente.');
     }
 
-    // --- Método auxiliar para autorización ---
     protected function authorizeTeacherAccess(Curso $curso): void
     {
         if (!$curso->profesores()->where('profesor_id', Auth::id())->exists()) {

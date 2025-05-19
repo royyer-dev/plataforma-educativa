@@ -4,107 +4,88 @@ namespace App\Http\Controllers\Docente;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth; // Para obtener el docente
-use App\Models\Inscripcion;          // Modelo Inscripcion
-use App\Models\Curso;                // Modelo Curso (para autorización)
+use Illuminate\Support\Facades\Auth;
+use App\Models\Inscripcion;
+use App\Models\Curso;
 use Illuminate\View\View;
-use Illuminate\Http\RedirectResponse; // Para el tipo de retorno
-// --- vvv Imports para Notificaciones vvv ---
+use Illuminate\Http\RedirectResponse;
 use App\Notifications\InscripcionAprobadaNotification;
 use App\Notifications\InscripcionRechazadaNotification;
-// --- ^^^ Fin Imports ^^^ ---
+// Asegúrate de importar Carrera si lo usas directamente para type hints o consultas
+// use App\Models\Carrera;
 
 class SolicitudController extends Controller
 {
     /**
-     * Constructor opcional para aplicar middleware.
-     */
-    // public function __construct()
-    // {
-    //     $this->middleware(['auth', 'role:docente']);
-    // }
-
-    /**
-     * Muestra una lista de las solicitudes de inscripción pendientes.
+     * Muestra lista de solicitudes pendientes y aceptadas, incluyendo la carrera del curso.
      */
     public function index(): View
     {
         $docente = Auth::user();
-        $cursosIds = $docente->cursosImpartidos()->pluck('cursos.id');
+        $cursosIdsDelDocente = $docente->cursosImpartidos()->pluck('cursos.id');
+
+        // 1. Buscar inscripciones con estado 'pendiente'
         $solicitudesPendientes = Inscripcion::where('estado', 'pendiente')
-                                            ->whereIn('curso_id', $cursosIds)
-                                            ->with(['estudiante', 'curso'])
-                                            ->orderBy('created_at')
-                                            ->paginate(15);
-        return view('docente.solicitudes.index', compact('solicitudesPendientes'));
+                                            ->whereIn('curso_id', $cursosIdsDelDocente)
+                                            // vvv MODIFICADO: Cargar también la carrera del curso vvv
+                                            ->with(['estudiante', 'curso.carrera'])
+                                            // ^^^ FIN MODIFICACIÓN ^^^
+                                            ->orderBy('created_at', 'desc')
+                                            ->paginate(10, ['*'], 'pendientes');
+
+        // 2. Buscar inscripciones con estado 'activo' (aceptadas)
+        $solicitudesAceptadas = Inscripcion::where('estado', 'activo')
+                                           ->whereIn('curso_id', $cursosIdsDelDocente)
+                                           // vvv MODIFICADO: Cargar también la carrera del curso vvv
+                                           ->with(['estudiante', 'curso.carrera'])
+                                           // ^^^ FIN MODIFICACIÓN ^^^
+                                           ->orderBy('updated_at', 'desc')
+                                           ->paginate(10, ['*'], 'aceptadas');
+
+        return view('docente.solicitudes.index', compact('solicitudesPendientes', 'solicitudesAceptadas'));
     }
 
-    /**
-     * Aprueba una solicitud de inscripción pendiente.
-     */
+    // ... (métodos aprobar, rechazar y authorizeTeacherAccess sin cambios funcionales para esto) ...
     public function aprobar(Request $request, Inscripcion $inscripcion): RedirectResponse
     {
-        // Verificar que esté pendiente
         if ($inscripcion->estado !== 'pendiente') {
             return redirect()->route('docente.solicitudes.index')
                              ->with('error', 'Esta solicitud ya no está pendiente.');
         }
-        // Verificar que el curso exista y el docente tenga permiso
         $this->authorizeTeacherAccess($inscripcion->curso);
 
-        // Guardar el estudiante ANTES de actualizar (importante para la notificación)
         $estudiante = $inscripcion->estudiante;
-
-        // Actualizar estado de la inscripción
         $inscripcion->estado = 'activo';
+        $inscripcion->fecha_inscripcion = now();
         $inscripcion->save();
 
-        // --- vvv Enviar Notificación de Aprobación vvv ---
-        if ($estudiante) { // Comprobar si la relación estudiante se cargó correctamente
+        if ($estudiante) {
              $estudiante->notify(new InscripcionAprobadaNotification($inscripcion));
         }
-        // --- ^^^ Fin Enviar Notificación ^^^ ---
-
-        // Redirigir con mensaje de éxito
         return redirect()->route('docente.solicitudes.index')
                          ->with('status', '¡Solicitud aprobada! El estudiante ha sido inscrito.');
     }
 
-    /**
-     * Rechaza (elimina) una solicitud de inscripción pendiente.
-     */
     public function rechazar(Request $request, Inscripcion $inscripcion): RedirectResponse
     {
-        // Verificar que esté pendiente
         if ($inscripcion->estado !== 'pendiente') {
             return redirect()->route('docente.solicitudes.index')
                              ->with('error', 'Esta solicitud ya no está pendiente.');
         }
-         // Verificar que el curso exista y el docente tenga permiso
         $this->authorizeTeacherAccess($inscripcion->curso);
 
-        // Guardar estudiante y curso ANTES de borrar la inscripción (para la notificación)
         $estudiante = $inscripcion->estudiante;
-        $curso = $inscripcion->curso; // Guardamos el curso antes de que se pierda la relación al borrar
-
-        // Eliminar la inscripción pendiente
+        $curso = $inscripcion->curso;
         $inscripcion->delete();
 
-        // --- vvv Enviar Notificación de Rechazo vvv ---
-        if ($estudiante && $curso) { // Comprobar si las relaciones se cargaron bien
-             // Pasamos el objeto Curso a la notificación de rechazo
+        if ($estudiante && $curso) {
              $estudiante->notify(new InscripcionRechazadaNotification($curso));
         }
-        // --- ^^^ Fin Enviar Notificación ^^^ ---
-
-        // Redirigir con mensaje de éxito/informativo
         return redirect()->route('docente.solicitudes.index')
                          ->with('status', 'Solicitud de inscripción rechazada.');
     }
 
-
-    // --- Método auxiliar para autorización ---
-    protected function authorizeTeacherAccess(?Curso $curso): void // Usamos ?Curso para permitir null temporalmente
+    protected function authorizeTeacherAccess(?Curso $curso): void
     {
         if (!$curso) {
              abort(404, 'Curso no encontrado para esta solicitud.');

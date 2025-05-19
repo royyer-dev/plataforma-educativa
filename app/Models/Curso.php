@@ -5,10 +5,16 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany; // <-- Importar BelongsToMany
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-// Importar Usuario si no se usa ::class en la relación
+// Importar modelos relacionados si se usan directamente en las relaciones y no con ::class
 // use App\Models\Usuario;
+// use App\Models\Carrera; // <--- Importar Carrera
+// use App\Models\Inscripcion;
+// use App\Models\Modulo;
+// use App\Models\Material;
+// use App\Models\Tarea;
+// use App\Models\Anuncio;
 
 class Curso extends Model
 {
@@ -20,7 +26,8 @@ class Curso extends Model
         'titulo',
         'codigo_curso',
         'descripcion',
-        'categoria_id',
+        // 'categoria_id', // <-- Eliminado
+        'carrera_id',   // <-- Añadido: ahora es carrera_id
         'estado',
         'fecha_inicio',
         'fecha_fin',
@@ -38,11 +45,13 @@ class Curso extends Model
     // --- RELACIONES ---
 
     /**
-     * La categoría a la que pertenece el Curso.
+     * La carrera a la que pertenece el Curso.
      */
-    public function categoria(): BelongsTo
+    public function carrera(): BelongsTo // <-- Renombrado de categoria() a carrera()
     {
-        return $this->belongsTo(Categoria::class);
+        // Apunta al modelo Carrera y usa la clave foránea carrera_id
+        // Asegúrate de que el modelo Carrera.php exista en app/Models/Carrera.php
+        return $this->belongsTo(Carrera::class, 'carrera_id'); // <-- Actualizado
     }
 
     /**
@@ -59,7 +68,7 @@ class Curso extends Model
      * Los estudiantes inscritos en este Curso.
      * Usa la tabla 'inscripciones' como pivote.
      */
-    public function estudiantes(): BelongsToMany // <-- MÉTODO AÑADIDO
+    public function estudiantes(): BelongsToMany
     {
         // Modelo relacionado, tabla pivote, FK de este modelo (Curso), FK del modelo relacionado (Usuario)
         return $this->belongsToMany(Usuario::class, 'inscripciones', 'curso_id', 'estudiante_id')

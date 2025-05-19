@@ -1,101 +1,130 @@
-@extends('layouts.app')
+@extends('layouts.app') {{-- Usa tu layout principal --}}
 
 @section('content')
-<div class="container">
-    <h1>Editar Curso: {{ $curso->titulo }}</h1>
+<div class="container py-4"> {{-- Añadido padding general al container --}}
+    <div class="row justify-content-center"> {{-- Centrar el contenido del formulario --}}
+        <div class="col-md-8 col-lg-7"> {{-- Definir un ancho máximo para el formulario --}}
+            <div class="card shadow-sm"> {{-- Envolver el formulario en una tarjeta con sombra --}}
+                <div class="card-header bg-warning text-dark"> {{-- Encabezado de la tarjeta (color warning para editar) --}}
+                    <h4 class="mb-0"><i class="fas fa-edit me-2"></i>Editar Curso: {{ $curso->titulo }}</h4>
+                </div>
+                <div class="card-body">
+                    {{-- Formulario para editar el curso --}}
+                    {{-- vvv AÑADIDO enctype para subida de archivos vvv --}}
+                    <form action="{{ route('docente.cursos.update', $curso->id) }}" method="POST" enctype="multipart/form-data">
+                        @csrf {{-- Token CSRF --}}
+                        @method('PUT') {{-- Directiva para indicar que es una petición PUT/PATCH --}}
 
-    {{-- Formulario para editar el curso --}}
-    {{-- Envía los datos por PUT/PATCH a la ruta nombrada 'docente.cursos.update' --}}
-    {{-- Pasamos el ID del curso a la ruta --}}
-    <form action="{{ route('docente.cursos.update', $curso->id) }}" method="POST">
-        @csrf {{-- Token CSRF --}}
-        @method('PUT') {{-- Directiva para indicar que es una petición PUT/PATCH --}}
+                        {{-- Campo Título --}}
+                        <div class="mb-3">
+                            <label for="titulo" class="form-label fw-bold">Título del Curso <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control @error('titulo') is-invalid @enderror" id="titulo" name="titulo" value="{{ old('titulo', $curso->titulo) }}" required placeholder="Ej: Cálculo Diferencial Avanzado">
+                            @error('titulo')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
 
-        {{-- Campo Título --}}
-        <div class="mb-3">
-            <label for="titulo" class="form-label">Título del Curso <span class="text-danger">*</span></label>
-            {{-- Usamos old() con fallback al valor actual del curso --}}
-            <input type="text" class="form-control @error('titulo') is-invalid @enderror" id="titulo" name="titulo" value="{{ old('titulo', $curso->titulo) }}" required>
-            @error('titulo')
-                <div class="invalid-feedback">{{ $message }}</div>
-            @enderror
-        </div>
+                        {{-- Campo Código del Curso (Opcional) --}}
+                        <div class="mb-3">
+                            <label for="codigo_curso" class="form-label fw-bold">Código del Curso</label>
+                            <input type="text" class="form-control @error('codigo_curso') is-invalid @enderror" id="codigo_curso" name="codigo_curso" value="{{ old('codigo_curso', $curso->codigo_curso) }}" placeholder="Ej: MAT-301 (Opcional)">
+                            @error('codigo_curso')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
 
-        {{-- Campo Código del Curso (Opcional) --}}
-        <div class="mb-3">
-            <label for="codigo_curso" class="form-label">Código del Curso (Ej: MAT-101)</label>
-            <input type="text" class="form-control @error('codigo_curso') is-invalid @enderror" id="codigo_curso" name="codigo_curso" value="{{ old('codigo_curso', $curso->codigo_curso) }}">
-            @error('codigo_curso')
-                <div class="invalid-feedback">{{ $message }}</div>
-            @enderror
-        </div>
+                        {{-- Campo Descripción (Opcional) --}}
+                        <div class="mb-3">
+                            <label for="descripcion" class="form-label fw-bold">Descripción</label>
+                            <textarea class="form-control @error('descripcion') is-invalid @enderror" id="descripcion" name="descripcion" rows="4" placeholder="Introduce una breve descripción del contenido, objetivos y temas principales del curso...">{{ old('descripcion', $curso->descripcion) }}</textarea>
+                            @error('descripcion')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
 
-        {{-- Campo Descripción (Opcional) --}}
-        <div class="mb-3">
-            <label for="descripcion" class="form-label">Descripción</label>
-            <textarea class="form-control @error('descripcion') is-invalid @enderror" id="descripcion" name="descripcion" rows="3">{{ old('descripcion', $curso->descripcion) }}</textarea>
-            @error('descripcion')
-                <div class="invalid-feedback">{{ $message }}</div>
-            @enderror
-        </div>
+                        {{-- Campo Carrera --}}
+                        <div class="mb-3">
+                            <label for="carrera_id" class="form-label fw-bold">Carrera</label>
+                            <select class="form-select @error('carrera_id') is-invalid @enderror" id="carrera_id" name="carrera_id">
+                                <option value="">-- Selecciona una Carrera (Opcional) --</option>
+                                {{-- Iterar sobre $carreras pasadas desde el controlador --}}
+                                @if(isset($carreras))
+                                    @foreach($carreras as $id => $nombre)
+                                        {{-- Usamos old() con fallback a la carrera actual del curso --}}
+                                        <option value="{{ $id }}" {{ old('carrera_id', $curso->carrera_id) == $id ? 'selected' : '' }}>{{ $nombre }}</option>
+                                    @endforeach
+                                @endif
+                            </select>
+                            @error('carrera_id')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
 
-        {{-- Campo Categoría (Opcional) --}}
-        <div class="mb-3">
-            <label for="categoria_id" class="form-label">Categoría</label>
-            <select class="form-select @error('categoria_id') is-invalid @enderror" id="categoria_id" name="categoria_id">
-                <option value="">-- Sin categoría --</option>
-                {{-- Usamos old() con fallback a la categoría actual del curso --}}
-                @foreach($categorias as $id => $nombre)
-                    <option value="{{ $id }}" {{ old('categoria_id', $curso->categoria_id) == $id ? 'selected' : '' }}>{{ $nombre }}</option>
-                @endforeach
-            </select>
-            @error('categoria_id')
-                <div class="invalid-feedback">{{ $message }}</div>
-            @enderror
-        </div>
+                        {{-- Campo Estado --}}
+                        <div class="mb-3">
+                            <label for="estado" class="form-label fw-bold">Estado <span class="text-danger">*</span></label>
+                            <select class="form-select @error('estado') is-invalid @enderror" id="estado" name="estado" required>
+                                {{-- Usamos old() con fallback al estado actual del curso --}}
+                                <option value="borrador" {{ old('estado', $curso->estado) == 'borrador' ? 'selected' : '' }}>Borrador (No visible para alumnos)</option>
+                                <option value="publicado" {{ old('estado', $curso->estado) == 'publicado' ? 'selected' : '' }}>Publicado (Visible para alumnos)</option>
+                                <option value="archivado" {{ old('estado', $curso->estado) == 'archivado' ? 'selected' : '' }}>Archivado (Oculto, no activo)</option>
+                            </select>
+                             @error('estado')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
 
-        {{-- Campo Estado --}}
-         <div class="mb-3">
-            <label for="estado" class="form-label">Estado <span class="text-danger">*</span></label>
-            <select class="form-select @error('estado') is-invalid @enderror" id="estado" name="estado" required>
-                 {{-- Usamos old() con fallback al estado actual del curso --}}
-                <option value="borrador" {{ old('estado', $curso->estado) == 'borrador' ? 'selected' : '' }}>Borrador</option>
-                <option value="publicado" {{ old('estado', $curso->estado) == 'publicado' ? 'selected' : '' }}>Publicado</option>
-                <option value="archivado" {{ old('estado', $curso->estado) == 'archivado' ? 'selected' : '' }}>Archivado</option>
-            </select>
-             @error('estado')
-                <div class="invalid-feedback">{{ $message }}</div>
-            @enderror
-        </div>
+                        {{-- Fila para Fechas --}}
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="fecha_inicio" class="form-label fw-bold">Fecha de Inicio</label>
+                                {{-- Formateamos la fecha para el input type="date" si existe --}}
+                                <input type="date" class="form-control @error('fecha_inicio') is-invalid @enderror" id="fecha_inicio" name="fecha_inicio" value="{{ old('fecha_inicio', $curso->fecha_inicio ? $curso->fecha_inicio->format('Y-m-d') : '') }}">
+                                 @error('fecha_inicio')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="fecha_fin" class="form-label fw-bold">Fecha de Fin</label>
+                                <input type="date" class="form-control @error('fecha_fin') is-invalid @enderror" id="fecha_fin" name="fecha_fin" value="{{ old('fecha_fin', $curso->fecha_fin ? $curso->fecha_fin->format('Y-m-d') : '') }}">
+                                 @error('fecha_fin')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                        </div>
 
-        {{-- Campo Fecha de Inicio (Opcional) --}}
-         <div class="mb-3">
-            <label for="fecha_inicio" class="form-label">Fecha de Inicio</label>
-            {{-- Formateamos la fecha para el input type="date" si existe --}}
-            <input type="date" class="form-control @error('fecha_inicio') is-invalid @enderror" id="fecha_inicio" name="fecha_inicio" value="{{ old('fecha_inicio', $curso->fecha_inicio ? $curso->fecha_inicio->format('Y-m-d') : '') }}">
-             @error('fecha_inicio')
-                <div class="invalid-feedback">{{ $message }}</div>
-            @enderror
-        </div>
+                        {{-- Campo para Imagen --}}
+                        <div class="mb-3">
+                            <label for="ruta_imagen_curso" class="form-label fw-bold">Imagen del Curso (Opcional)</label>
+                            <input class="form-control @error('ruta_imagen_curso') is-invalid @enderror" type="file" id="ruta_imagen_curso" name="ruta_imagen_curso" accept="image/jpeg,image/png,image/gif,image/webp">
+                            <small class="form-text text-muted">Sube una nueva imagen para reemplazar la actual, o deja vacío para conservarla.</small>
+                            @if($curso->ruta_imagen_curso)
+                                <div class="mt-2">
+                                    <small>Imagen actual:</small><br>
+                                    <img src="{{ Storage::url($curso->ruta_imagen_curso) }}" alt="Imagen actual del curso {{ $curso->titulo }}" style="max-height: 100px; border-radius: .25rem; margin-top: 5px;">
+                                </div>
+                            @endif
+                            @error('ruta_imagen_curso')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
 
-        {{-- Campo Fecha de Fin (Opcional) --}}
-        <div class="mb-3">
-            <label for="fecha_fin" class="form-label">Fecha de Fin</label>
-            <input type="date" class="form-control @error('fecha_fin') is-invalid @enderror" id="fecha_fin" name="fecha_fin" value="{{ old('fecha_fin', $curso->fecha_fin ? $curso->fecha_fin->format('Y-m-d') : '') }}">
-             @error('fecha_fin')
-                <div class="invalid-feedback">{{ $message }}</div>
-            @enderror
-        </div>
+                        <hr class="my-4"> {{-- Separador visual --}}
 
-        {{-- Campo para Imagen (si lo implementas) --}}
-        {{-- ... --}}
+                        {{-- Botones de Acción --}}
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{{ route('docente.cursos.show', $curso->id) }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-1"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-warning"> {{-- Botón de color warning para actualizar --}}
+                                <i class="fas fa-save me-1"></i> Actualizar Curso
+                            </button>
+                        </div>
 
-        <div class="mt-4">
-            <button type="submit" class="btn btn-primary">Actualizar Curso</button>
-            <a href="{{ route('docente.cursos.show', $curso->id) }}" class="btn btn-secondary">Cancelar</a> {{-- Enlace para volver a los detalles --}}
-        </div>
-
-    </form> {{-- Fin del formulario --}}
-
+                    </form> {{-- Fin del formulario --}}
+                </div> {{-- Fin card-body --}}
+            </div> {{-- Fin card --}}
+        </div> {{-- Fin col --}}
+    </div> {{-- Fin row --}}
 </div> {{-- Fin container --}}
 @endsection

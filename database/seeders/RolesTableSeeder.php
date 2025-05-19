@@ -5,7 +5,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB; // Importar DB Facade
-use App\Models\Role; // Importar el modelo Role
+use App\Models\Role;               // Importar el modelo Role
 
 class RolesTableSeeder extends Seeder
 {
@@ -14,8 +14,11 @@ class RolesTableSeeder extends Seeder
      */
     public function run(): void
     {
-        // Opcional: Vaciar la tabla primero para evitar duplicados si se ejecuta varias veces
-        // DB::table('roles')->truncate(); // O DB::table('roles')->delete();
+        // --- vvv LÍNEA AÑADIDA/DESCOMENTADA vvv ---
+        // Vaciar la tabla primero para evitar duplicados.
+        // Role::truncate(); // Opción 1: Más rápido, pero resetea IDs y puede fallar con FKs.
+        DB::table('roles')->delete(); // Opción 2: Borra todas las filas.
+        // --- ^^^ FIN LÍNEA AÑADIDA/DESCOMENTADA ^^^ ---
 
         // Crear los roles esenciales
         Role::create([
