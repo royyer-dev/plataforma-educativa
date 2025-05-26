@@ -14,92 +14,107 @@ use App\Models\Usuario;
 
 class DashboardController extends Controller
 {
-    /**
-     * Muestra el dashboard principal del docente.
-     * Incluye cursos impartidos y solicitudes pendientes.
-     */
     public function index(): View
     {
         $docente = Auth::user();
 
-        // 1. Cursos que imparte el docente (para la lista y estadísticas)
-        $cursosDocente = $docente->cursosImpartidos()->orderBy('titulo')->get();
-        // vvv CORRECCIÓN: Especificar la tabla para 'id' vvv
-        $cursosIds = $docente->cursosImpartidos()->pluck('cursos.id'); // Solo IDs de los cursos
+        // Obtener cursos del docente y contar estudiantes activos en cada uno
+        $cursosDocente = $docente->cursosImpartidos()
+                                 ->withCount(['estudiantes as estudiantes_activos_count' => function ($query) {
+                                     $query->where('inscripciones.estado', 'activo');
+                                 }])
+                                 ->orderBy('titulo')
+                                 ->get();
 
-        // 2. Solicitudes Pendientes (conteo)
+        $cursosIds = $cursosDocente->pluck('id');
+
+        // Estadísticas generales
         $solicitudesPendientesCount = 0;
         if ($cursosIds->isNotEmpty()) {
              $solicitudesPendientesCount = Inscripcion::where('estado', 'pendiente')
                                                 ->whereIn('curso_id', $cursosIds)
                                                 ->count();
         }
-
-        // 3. Estadísticas Adicionales
-        $totalCursosActivos = $cursosDocente->where('estado', 'publicado')->count();
-
-        $totalEstudiantesInscritos = 0;
-        if ($cursosIds->isNotEmpty()) {
-            $totalEstudiantesInscritos = Inscripcion::whereIn('curso_id', $cursosIds)
-                                             ->where('estado', 'activo')
-                                             ->distinct('estudiante_id')
-                                             ->count('estudiante_id');
-        }
+        // Contamos solo los cursos que el docente imparte y están publicados
+        $totalCursosActivos = $docente->cursosImpartidos()->where('estado', 'publicado')->count();
+        $totalEstudiantesInscritos = $cursosDocente->sum('estudiantes_activos_count');
 
         $totalTareasSinCalificar = 0;
         if ($cursosIds->isNotEmpty()) {
-            // Contar entregas que pertenecen a tareas de los cursos del docente,
-            // y que aún no tienen calificación.
             $totalTareasSinCalificar = Entrega::whereHas('tarea', function ($query) use ($cursosIds) {
                                                 $query->whereIn('curso_id', $cursosIds);
                                             })
-                                            ->whereNull('calificacion') // Donde la calificación es NULL
+                                            ->whereNull('calificacion')
                                             ->count();
         }
 
-        // 4. Actividad Reciente: Últimas 5 entregas recibidas en sus cursos
-        $ultimasEntregas = collect(); // Colección vacía por defecto
+        // Actividad Reciente
+        $ultimasEntregas = collect();
         if ($cursosIds->isNotEmpty()) {
             $ultimasEntregas = Entrega::whereHas('tarea', function ($query) use ($cursosIds) {
                                         $query->whereIn('curso_id', $cursosIds);
                                     })
-                                    ->with(['estudiante', 'tarea.curso']) // Cargar relaciones
+                                    ->with(['estudiante', 'tarea.curso'])
                                     ->orderBy('created_at', 'desc')
                                     ->limit(5)
                                     ->get();
         }
 
-        // Pasar los datos a la vista
+        // --- DATOS PARA GRÁFICAS ---
+
+        // 1. Datos para Gráfica: Distribución de Estudiantes por Curso
+        // Filtrar cursos que realmente tengan estudiantes para que la gráfica no sea muy grande si hay muchos cursos sin alumnos
+        $cursosParaGraficaEstudiantes = $cursosDocente->filter(function ($curso) {
+            return $curso->estudiantes_activos_count > 0;
+        });
+        $chartEstudiantesPorCursoLabels = $cursosParaGraficaEstudiantes->pluck('titulo');
+        $chartEstudiantesPorCursoData = $cursosParaGraficaEstudiantes->pluck('estudiantes_activos_count');
+
+        // 2. Datos para Gráfica: Estado de Calificación de Entregas (General)
+        $entregasTotalesCursosDocente = 0;
+        $entregasCalificadasCursosDocente = 0;
+        if ($cursosIds->isNotEmpty()) {
+            $entregasTotalesCursosDocente = Entrega::whereHas('tarea', function ($query) use ($cursosIds) {
+                                                    $query->whereIn('curso_id', $cursosIds);
+                                                })->count();
+            $entregasCalificadasCursosDocente = Entrega::whereHas('tarea', function ($query) use ($cursosIds) {
+                                                    $query->whereIn('curso_id', $cursosIds);
+                                                })
+                                                ->whereNotNull('calificacion')
+                                                ->count();
+        }
+        $chartEstadoEntregasLabels = ['Calificadas', 'Pendientes de Calificar'];
+        $entregasPendientesData = $entregasTotalesCursosDocente - $entregasCalificadasCursosDocente;
+        // Asegurarse que no sea negativo si no hay entregas totales pero sí calificadas (caso raro)
+        $entregasPendientesData = $entregasPendientesData < 0 ? 0 : $entregasPendientesData;
+
+        $chartEstadoEntregasData = [
+            $entregasCalificadasCursosDocente,
+            $entregasPendientesData
+        ];
+
         return view('docente.dashboard', compact(
             'cursosDocente',
             'solicitudesPendientesCount',
             'totalCursosActivos',
             'totalEstudiantesInscritos',
             'totalTareasSinCalificar',
-            'ultimasEntregas'
+            'ultimasEntregas',
+            'chartEstudiantesPorCursoLabels',
+            'chartEstudiantesPorCursoData',
+            'chartEstadoEntregasLabels',
+            'chartEstadoEntregasData'
         ));
     }
 
-    /**
-     * Muestra una lista general de todos los estudiantes inscritos
-     * en los cursos del docente, con opción de búsqueda.
-     * Ruta: GET /docente/mis-estudiantes
-     * Nombre: docente.estudiantes.generales
-     */
-    public function verTodosEstudiantes(Request $request): View
-    {
+    public function verTodosEstudiantes(Request $request): View {
         $docente = Auth::user();
-        // vvv CORRECCIÓN: Especificar la tabla para 'id' vvv
         $cursosIdsDelDocente = $docente->cursosImpartidos()->pluck('cursos.id');
-
-        // Query base para las inscripciones activas en los cursos del docente
         $queryInscripciones = Inscripcion::whereIn('curso_id', $cursosIdsDelDocente)
                                         ->where('estado', 'activo')
-                                        ->with(['estudiante', 'curso']) // Cargar relaciones
-                                        ->join('usuarios', 'inscripciones.estudiante_id', '=', 'usuarios.id') // Join para buscar por nombre/email
-                                        ->select('inscripciones.*'); // Seleccionar todo de inscripciones para evitar ambigüedad
-
-        // Lógica de Búsqueda
+                                        ->with(['estudiante', 'curso'])
+                                        ->join('usuarios', 'inscripciones.estudiante_id', '=', 'usuarios.id')
+                                        ->select('inscripciones.*');
         $terminoBusqueda = $request->input('busqueda');
         if ($terminoBusqueda) {
             $queryInscripciones->where(function ($q) use ($terminoBusqueda) {
@@ -108,10 +123,7 @@ class DashboardController extends Controller
                   ->orWhere('usuarios.email', 'like', "%{$terminoBusqueda}%");
             });
         }
-
-        // Ordenar y paginar
         $inscripciones = $queryInscripciones->orderBy('usuarios.apellidos')->orderBy('usuarios.nombre')->paginate(20);
-
         return view('docente.estudiantes_generales.index', compact('inscripciones', 'terminoBusqueda'));
     }
 
@@ -119,18 +131,14 @@ class DashboardController extends Controller
     {
         $docente = Auth::user();
         $cursosIdsDelDocente = $docente->cursosImpartidos()->pluck('cursos.id');
-
-        // Query base para las entregas sin calificar en los cursos del docente
-        $queryEntregas = Entrega::whereNull('calificacion') // Solo las que no tienen nota
+        $queryEntregas = Entrega::whereNull('calificacion')
                                 ->whereHas('tarea', function ($q_tarea) use ($cursosIdsDelDocente) {
-                                    $q_tarea->whereIn('curso_id', $cursosIdsDelDocente); // De tareas en sus cursos
+                                    $q_tarea->whereIn('curso_id', $cursosIdsDelDocente);
                                 })
-                                ->with(['estudiante', 'tarea', 'tarea.curso']) // Cargar relaciones
-                                ->join('tareas', 'entregas.tarea_id', '=', 'tareas.id') // Join para buscar por título de tarea
-                                ->join('usuarios', 'entregas.estudiante_id', '=', 'usuarios.id') // Join para buscar por estudiante
-                                ->select('entregas.*'); // Seleccionar todo de entregas
-
-        // Lógica de Búsqueda (por nombre de estudiante o título de tarea)
+                                ->with(['estudiante', 'tarea.curso'])
+                                ->join('tareas', 'entregas.tarea_id', '=', 'tareas.id')
+                                ->join('usuarios', 'entregas.estudiante_id', '=', 'usuarios.id')
+                                ->select('entregas.*');
         $terminoBusqueda = $request->input('busqueda');
         if ($terminoBusqueda) {
             $queryEntregas->where(function ($q) use ($terminoBusqueda) {
@@ -139,10 +147,7 @@ class DashboardController extends Controller
                   ->orWhere('tareas.titulo', 'like', "%{$terminoBusqueda}%");
             });
         }
-
-        // Ordenar por fecha de entrega (más antiguas primero para calificar) y paginar
         $entregasPorCalificar = $queryEntregas->orderBy('entregas.created_at', 'asc')->paginate(15);
-
         return view('docente.entregas_por_calificar.index', compact('entregasPorCalificar', 'terminoBusqueda'));
     }
 }
