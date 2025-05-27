@@ -1,6 +1,5 @@
-    <?php
-
-    namespace App\Http\Middleware;
+<?php
+namespace App\Http\Middleware;
 
     use Illuminate\Http\Middleware\TrustProxies as Middleware;
     use Illuminate\Http\Request; // O use Fideloper\Proxy\TrustProxies as Middleware; en versiones más antiguas de Laravel
