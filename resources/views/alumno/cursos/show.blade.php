@@ -8,10 +8,9 @@
             <div class="card bg-primary text-white">
                 <div class="card-body py-4">
                     <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h1 class="display-6 mb-2">{{ $curso->nombre }}</h1>
+                        <div>                            <h1 class="display-6 mb-2">{{ $curso->titulo }}</h1>
                             <p class="mb-0 opacity-75">
-                                <i class="fas fa-user-tie me-2"></i>{{ $curso->docente->nombre }}
+                                <i class="fas fa-user-tie me-2"></i>{{ $curso->profesores->first()?->nombre ?? 'Sin profesor asignado' }}
                             </p>
                         </div>
                         <div class="text-end">

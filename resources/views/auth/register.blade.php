@@ -79,10 +79,10 @@
                                 <select id="genero" class="form-select @error('genero') is-invalid @enderror" 
                                         name="genero">
                                     <option value="">Selecciona una opción</option>
-                                    <option value="M" {{ old('genero') == 'M' ? 'selected' : '' }}>Masculino</option>
-                                    <option value="F" {{ old('genero') == 'F' ? 'selected' : '' }}>Femenino</option>
-                                    <option value="O" {{ old('genero') == 'O' ? 'selected' : '' }}>Otro</option>
-                                    <option value="N" {{ old('genero') == 'N' ? 'selected' : '' }}>Prefiero no decir</option>
+                                    <option value="masculino" {{ old('genero') == 'masculino' ? 'selected' : '' }}>Masculino</option>
+                                    <option value="femenino" {{ old('genero') == 'femenino' ? 'selected' : '' }}>Femenino</option>
+                                    <option value="otro" {{ old('genero') == 'otro' ? 'selected' : '' }}>Otro</option>
+                                    <option value="no_especificado" {{ old('genero') == 'no_especificado' ? 'selected' : '' }}>Prefiero no decir</option>
                                 </select>
                             </div>
                             @error('genero')
