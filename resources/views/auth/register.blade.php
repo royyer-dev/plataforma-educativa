@@ -116,8 +116,9 @@
                                 <select id="role_id" class="form-select @error('role_id') is-invalid @enderror" 
                                         name="role_id" required>
                                     <option value="">Selecciona un rol</option>
-                                    <option value="2" {{ old('role_id') == 2 ? 'selected' : '' }}>Docente</option>
-                                    <option value="3" {{ old('role_id') == 3 ? 'selected' : '' }}>Estudiante</option>
+                                    @foreach($roles as $id => $nombre)
+                                        <option value="{{ $id }}" {{ old('role_id') == $id ? 'selected' : '' }}>{{ ucfirst($nombre) }}</option>
+                                    @endforeach
                                 </select>
                             </div>
                             @error('role_id')
