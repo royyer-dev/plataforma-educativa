@@ -2,195 +2,171 @@
 
 @section('content')
 <div class="container py-4">
-
-    {{-- Breadcrumbs para mejor navegación --}}
-    <nav aria-label="breadcrumb" class="mb-3">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{{ route('alumno.dashboard') }}">Dashboard</a></li>
-            {{-- Asumimos que $curso->carrera existe y está cargado --}}
-            @if(optional($curso->carrera)->id)
-                <li class="breadcrumb-item"><a href="{{ route('alumno.carreras.index') }}">Carreras</a></li>
-                <li class="breadcrumb-item"><a href="{{ route('alumno.cursos.index', ['carrera' => $curso->carrera->id]) }}">{{ $curso->carrera->nombre }}</a></li>
-            @else
-                 {{-- Fallback si no hay carrera, podría enlazar a una lista general de cursos si existiera --}}
-                 <li class="breadcrumb-item"><a href="{{ route('alumno.carreras.index') }}">Cursos</a></li>
-            @endif
-            <li class="breadcrumb-item active" aria-current="page">{{ Str::limit($curso->titulo, 30) }}</li>
-        </ol>
-    </nav>
-
-    {{-- Mensajes Flash --}}
-    @if (session('status'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            {{ session('status') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-    @if (session('error'))
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            {{ session('error') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-
-    {{-- Encabezado del Curso con Imagen --}}
-    <div class="card shadow-lg mb-4 overflow-hidden">
-        @if($curso->ruta_imagen_curso)
-            {{-- vvv ALTURA DE IMAGEN MODIFICADA vvv --}}
-            <img src="{{ Storage::url($curso->ruta_imagen_curso) }}" class="card-img-top" alt="Imagen de {{ $curso->titulo }}" style="height: 200px; object-fit: cover;">
-            {{-- ^^^ FIN MODIFICACIÓN ^^^ --}}
-        @else
-            {{-- vvv ALTURA DE PLACEHOLDER MODIFICADA vvv --}}
-            <div class="bg-secondary text-white d-flex align-items-center justify-content-center" style="height: 200px;">
-            {{-- ^^^ FIN MODIFICACIÓN ^^^ --}}
-                <i class="fas fa-chalkboard-teacher fa-5x opacity-50"></i>
+    {{-- Encabezado del curso --}}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-primary text-white">
+                <div class="card-body py-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h1 class="display-6 mb-2">{{ $curso->nombre }}</h1>
+                            <p class="mb-0 opacity-75">
+                                <i class="fas fa-user-tie me-2"></i>{{ $curso->docente->nombre }}
+                            </p>
+                        </div>
+                        <div class="text-end">
+                            <div class="h4 mb-0">{{ $curso->codigo }}</div>
+                            <small class="opacity-75">Código del curso</small>
+                        </div>
+                    </div>
+                </div>
             </div>
-        @endif
-        <div class="card-body">
-            <h1 class="card-title display-5">{{ $curso->titulo }}</h1>
-            <p class="card-text text-muted">
-                <i class="fas fa-graduation-cap me-1"></i> Carrera: {{ optional($curso->carrera)->nombre ?? 'No especificada' }}
-            </p>
-            <p class="card-text">
-                <i class="fas fa-user-tie me-1"></i> Profesor(es):
-                @if($curso->profesores && $curso->profesores->count() > 0)
-                    {{ $curso->profesores->pluck('nombre')->implode(', ') }}
-                @else
-                    No asignado
-                @endif
-            </p>
-            @if($curso->descripcion)
-                <p class="card-text mt-3">{!! nl2br(e($curso->descripcion)) !!}</p>
-            @endif
         </div>
     </div>
 
-    {{-- Contenido del Curso: Módulos, Materiales, Tareas --}}
-    <h3 class="mb-3"><i class="fas fa-stream me-2"></i>Contenido del Curso</h3>
-
-    @php
-        $materialesGenerales = $curso->materiales->whereNull('modulo_id');
-        $tareasGenerales = $curso->tareas->whereNull('modulo_id');
-    @endphp
-
-    {{-- Contenido General (si existe) --}}
-    @if($materialesGenerales->isNotEmpty() || $tareasGenerales->isNotEmpty())
-        <div class="card shadow-sm mb-4">
-            <div class="card-header bg-light">
-                <h5 class="mb-0"><i class="fas fa-folder-open me-2"></i>Contenido General del Curso</h5>
-            </div>
-            <div class="card-body">
-                @if($materialesGenerales->isNotEmpty())
-                    <h6 class="text-primary"><i class="fas fa-book me-2"></i>Materiales Generales:</h6>
-                    <ul class="list-unstyled ps-3">
-                        @foreach($materialesGenerales->sortBy('orden') as $material)
-                            <li>@include('alumno.cursos._material_item', ['material' => $material, 'curso' => $curso])</li>
-                        @endforeach
+    {{-- Contenido principal --}}
+    <div class="row">
+        {{-- Sección izquierda: Materiales y recursos --}}
+        <div class="col-lg-8 mb-4 mb-lg-0">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white py-3">
+                    <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                        <li class="nav-item">
+                            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#materiales" type="button">
+                                <i class="fas fa-book-open me-2"></i>Materiales
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tareas" type="button">
+                                <i class="fas fa-tasks me-2"></i>Tareas
+                            </button>
+                        </li>
                     </ul>
-                    @if($tareasGenerales->isNotEmpty()) <hr class="my-3"> @endif
-                @endif
-
-                 @if($tareasGenerales->isNotEmpty())
-                    <h6 class="text-info"><i class="fas fa-clipboard-list me-2"></i>Tareas Generales:</h6>
-                    <ul class="list-unstyled ps-3">
-                        @foreach($tareasGenerales->sortBy('fecha_limite') as $tarea)
-                            <li>@include('alumno.cursos._tarea_item', ['tarea' => $tarea, 'curso' => $curso])</li>
-                        @endforeach
-                    </ul>
-                 @endif
-            </div>
-        </div>
-    @endif
-
-    {{-- Módulos (usando Acordeón de Bootstrap) --}}
-    @if($curso->modulos && $curso->modulos->count() > 0)
-        <div class="accordion shadow-sm" id="accordionModulos">
-            @foreach($curso->modulos->sortBy('orden') as $index => $modulo)
-                <div class="accordion-item">
-                    <h2 class="accordion-header" id="headingModulo{{ $modulo->id }}">
-                        <button class="accordion-button {{ $index == 0 ? '' : 'collapsed' }}" type="button" data-bs-toggle="collapse" data-bs-target="#collapseModulo{{ $modulo->id }}" aria-expanded="{{ $index == 0 ? 'true' : 'false' }}" aria-controls="collapseModulo{{ $modulo->id }}">
-                            <i class="fas fa-sitemap me-2"></i>
-                            <strong>Módulo {{ $modulo->orden ?? $loop->iteration }}: {{ $modulo->titulo }}</strong>
-                        </button>
-                    </h2>
-                    <div id="collapseModulo{{ $modulo->id }}" class="accordion-collapse collapse {{ $index == 0 ? 'show' : '' }}" aria-labelledby="headingModulo{{ $modulo->id }}" data-bs-parent="#accordionModulos">
-                        <div class="accordion-body">
-                            @if($modulo->descripcion)
-                                <p>{{ $modulo->descripcion }}</p>
-                                <hr>
-                            @endif
-
-                            @if($modulo->materiales && $modulo->materiales->count() > 0)
-                                <h6 class="text-primary"><i class="fas fa-book me-2"></i>Materiales del Módulo:</h6>
-                                <ul class="list-unstyled ps-3">
-                                    @foreach($modulo->materiales->sortBy('orden') as $material)
-                                        <li>@include('alumno.cursos._material_item', ['material' => $material, 'curso' => $curso])</li>
-                                    @endforeach
-                                </ul>
+                </div>
+                <div class="card-body p-4">
+                    <div class="tab-content">
+                        {{-- Tab de Materiales --}}
+                        <div class="tab-pane fade show active" id="materiales">
+                            @if($curso->materiales->count() > 0)
+                                @foreach($curso->materiales as $material)
+                                    @include('alumno.cursos._material_item', ['material' => $material])
+                                @endforeach
                             @else
-                                <p class="text-muted small"><em>No hay materiales en este módulo.</em></p>
+                                <div class="text-center text-muted py-4">
+                                    <i class="fas fa-folder-open fa-3x mb-3"></i>
+                                    <p>No hay materiales disponibles en este momento.</p>
+                                </div>
                             @endif
+                        </div>
 
-                            @if($modulo->tareas && $modulo->tareas->count() > 0)
-                                <h6 class="mt-3 text-info"><i class="fas fa-clipboard-list me-2"></i>Tareas del Módulo:</h6>
-                                <ul class="list-unstyled ps-3">
-                                     @foreach($modulo->tareas->sortBy('fecha_limite') as $tarea)
-                                        <li>@include('alumno.cursos._tarea_item', ['tarea' => $tarea, 'curso' => $curso])</li>
-                                    @endforeach
-                                </ul>
+                        {{-- Tab de Tareas --}}
+                        <div class="tab-pane fade" id="tareas">
+                            @if($curso->tareas->count() > 0)
+                                @foreach($curso->tareas as $tarea)
+                                    @include('alumno.cursos._tarea_item', ['tarea' => $tarea])
+                                @endforeach
                             @else
-                                 <p class="text-muted small mt-3"><em>No hay tareas en este módulo.</em></p>
+                                <div class="text-center text-muted py-4">
+                                    <i class="fas fa-clipboard-list fa-3x mb-3"></i>
+                                    <p>No hay tareas asignadas en este momento.</p>
+                                </div>
                             @endif
                         </div>
                     </div>
                 </div>
-            @endforeach
-        </div>
-    @else
-        @if($materialesGenerales->isEmpty() && $tareasGenerales->isEmpty())
-             <div class="alert alert-light text-center shadow-sm" role="alert">
-                <i class="fas fa-info-circle fa-2x mb-2 d-block text-primary"></i>
-                Este curso no tiene contenido publicado todavía.
             </div>
-        @endif
-    @endif
+        </div>
 
-    {{-- Sección Salir del Curso (Modal) --}}
-    <hr class="my-5"> {{-- Más separación --}}
-    <div class="text-center mb-4"> {{-- Centrar botón --}}
-        <button type="button" class="btn btn-outline-danger btn-lg" data-bs-toggle="modal" data-bs-target="#modalSalirCurso">
-            <i class="fas fa-sign-out-alt me-2"></i>Salir de este Curso
-        </button>
-    </div>
-    <div class="modal fade" id="modalSalirCurso" tabindex="-1" aria-labelledby="modalSalirCursoLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered"> {{-- Centrar modal --}}
-            <div class="modal-content shadow-lg">
-                <div class="modal-header bg-danger text-white">
-                    <h5 class="modal-title" id="modalSalirCursoLabel"><i class="fas fa-exclamation-triangle me-2"></i>Confirmar Salida del Curso</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <form id="form-salir-curso" action="{{ route('alumno.cursos.salir', $curso->id) }}" method="POST">
-                    @csrf
-                    @method('DELETE')
-                    <div class="modal-body">
-                        <p>Si sales de este curso, perderás el acceso a su contenido y tus entregas podrían ser eliminadas. Esta acción no se puede deshacer fácilmente.</p>
-                        <p class="fw-bold">¿Estás seguro de querer continuar?</p>
-                        <div class="mb-3 mt-3">
-                            <label for="password_confirmacion_modal" class="form-label">Confirma tu contraseña para salir <span class="text-danger">*</span></label>
-                            <input type="password" class="form-control @error('password_confirmacion') is-invalid @enderror" id="password_confirmacion_modal" name="password_confirmacion" required>
-                            @error('password_confirmacion')
-                                <div class="invalid-feedback d-block">{{ $message }}</div>
-                            @enderror
+        {{-- Sección derecha: Información y estadísticas --}}
+        <div class="col-lg-4">
+            {{-- Progreso del curso --}}
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">
+                        <i class="fas fa-chart-pie me-2"></i>Progreso del Curso
+                    </h5>
+                    @php
+                        $totalTareas = $curso->tareas->count();
+                        $tareasCompletadas = $curso->tareas->where('estado', 'calificada')->count();
+                        $promedioCalificaciones = $curso->tareas->where('estado', 'calificada')
+                            ->avg('calificacion') ?? 0;
+                    @endphp
+                    
+                    <div class="progress mb-3" style="height: 10px;">
+                        <div class="progress-bar bg-success" role="progressbar" 
+                             style="width: {{ $totalTareas > 0 ? ($tareasCompletadas / $totalTareas * 100) : 0 }}%">
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-danger">Confirmar y Salir</button>
+                    
+                    <div class="row text-center">
+                        <div class="col-6 border-end">
+                            <div class="h4 mb-0">{{ $tareasCompletadas }}/{{ $totalTareas }}</div>
+                            <small class="text-muted">Tareas Completadas</small>
+                        </div>
+                        <div class="col-6">
+                            <div class="h4 mb-0">{{ number_format($promedioCalificaciones, 1) }}</div>
+                            <small class="text-muted">Promedio</small>
+                        </div>
                     </div>
-                </form>
+                </div>
+            </div>
+
+            {{-- Próximas entregas --}}
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">
+                        <i class="fas fa-calendar-alt me-2"></i>Próximas Entregas
+                    </h5>
+                    @php
+                        $proximasTareas = $curso->tareas
+                            ->where('estado', 'pendiente')
+                            ->where('fecha_limite', '>=', now())
+                            ->sortBy('fecha_limite')
+                            ->take(3);
+                    @endphp
+
+                    @if($proximasTareas->count() > 0)
+                        @foreach($proximasTareas as $tarea)
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="flex-shrink-0">
+                                    <div class="calendar-date text-center border rounded p-1" style="width: 45px;">
+                                        <div class="small text-uppercase">{{ $tarea->fecha_limite->format('M') }}</div>
+                                        <div class="h5 mb-0">{{ $tarea->fecha_limite->format('d') }}</div>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h6 class="mb-0">{{ Str::limit($tarea->titulo, 30) }}</h6>
+                                    <small class="text-muted">
+                                        {{ $tarea->fecha_limite->format('H:i') }} hrs
+                                    </small>
+                                </div>
+                            </div>
+                        @endforeach
+                    @else
+                        <p class="text-muted mb-0">No hay entregas pendientes próximas.</p>
+                    @endif
+                </div>
             </div>
         </div>
     </div>
+</div>
 
-</div> {{-- Fin container --}}
+<style>
+.nav-tabs .nav-link {
+    color: #6c757d;
+    border: none;
+    padding: 0.5rem 1rem;
+}
+.nav-tabs .nav-link.active {
+    color: #0d6efd;
+    border-bottom: 2px solid #0d6efd;
+    background: none;
+}
+.calendar-date {
+    background-color: #f8f9fa;
+}
+.progress {
+    background-color: #e9ecef;
+}
+</style>
 @endsection

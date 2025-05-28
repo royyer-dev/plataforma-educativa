@@ -95,6 +95,10 @@ Route::middleware(['auth', 'role:estudiante'])
         
         // Ver cursos DE UNA CARRERA específica
         Route::get('/carreras/{carrera}/cursos', [AlumnoCursoController::class, 'index'])->name('cursos.index');
+        
+        // Solicitar inscripción a un curso
+        Route::post('/cursos/{curso}/solicitar-inscripcion', [AlumnoCursoController::class, 'solicitarInscripcion'])
+            ->name('cursos.solicitar-inscripcion');
 
         // Ver entregas en general
         //Route::get('/mis-entregas', [AlumnoDashboardController::class, 'agendaEntregas'])->name('entregas.agenda');

@@ -2,28 +2,23 @@
 
 @section('content')
 <div class="container py-4">
-
-    {{-- Breadcrumbs y Navegación --}}
-    <nav aria-label="breadcrumb" class="mb-3">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{{ route('alumno.dashboard') }}">Dashboard</a></li>
-            @if(isset($curso) && optional($curso->carrera)->id)
-                <li class="breadcrumb-item"><a href="{{ route('alumno.carreras.index') }}">Carreras</a></li>
-                <li class="breadcrumb-item"><a href="{{ route('alumno.cursos.index', ['carrera' => $curso->carrera->id]) }}">{{ Str::limit(optional($curso->carrera)->nombre, 25) }}</a></li>
-            @endif
-            <li class="breadcrumb-item"><a href="{{ route('alumno.cursos.show', $curso->id) }}">{{ Str::limit($curso->titulo, 30) }}</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Tarea</li>
-        </ol>
-    </nav>
-
-    {{-- Título de la Tarea --}}
-    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
-        <h1><i class="fas fa-clipboard-list me-2 text-primary"></i>{{ $tarea->titulo }}</h1>
-        <a href="{{ route('alumno.cursos.show', $curso->id) }}" class="btn btn-outline-secondary btn-sm mt-2 mt-md-0">
-            <i class="fas fa-arrow-left me-1"></i> Volver al Curso
-        </a>
+    {{-- Encabezado Principal --}}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-primary text-white">
+                <div class="card-body py-4">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap">
+                        <div>
+                            <h1 class="display-6 mb-0">{{ $tarea->titulo }}</h1>
+                        </div>
+                        <a href="{{ route('alumno.cursos.show', $curso->id) }}" class="btn btn-light mt-2 mt-md-0">
+                            <i class="fas fa-arrow-left me-1"></i>Volver al Curso
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-
 
     {{-- Mensajes Flash --}}
     @if (session('status'))
@@ -39,124 +34,206 @@
         </div>
     @endif
 
-    <div class="row">
+    <div class="row g-4">
         {{-- Columna Principal: Instrucciones y Entrega --}}
-        <div class="col-lg-8 mb-4 mb-lg-0">
+        <div class="col-lg-8">
             {{-- Descripción / Instrucciones --}}
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-light">
-                    <h5 class="mb-0"><i class="fas fa-info-circle me-2 text-info"></i>Instrucciones</h5>
+            <div class="card shadow-sm hover-shadow-sm mb-4">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle me-2 text-primary"></i>Instrucciones
+                    </h5>
                 </div>
                 <div class="card-body">
                     @if($tarea->descripcion)
                         <div class="text-break">{!! nl2br(e($tarea->descripcion)) !!}</div>
                     @else
-                        <p class="text-muted fst-italic">No hay descripción adicional para esta tarea.</p>
+                        <div class="text-center py-4">
+                            <i class="fas fa-file-alt fa-2x text-muted mb-2"></i>
+                            <p class="text-muted mb-0">No hay descripción adicional para esta tarea.</p>
+                        </div>
                     @endif
                 </div>
             </div>
 
             {{-- Sección de Entrega --}}
-            <div class="card shadow-sm">
-                <div class="card-header bg-light">
-                    <h5 class="mb-0"><i class="fas fa-paper-plane me-2 text-success"></i>Tu Entrega</h5>
+            <div class="card shadow-sm hover-shadow-sm">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0">
+                        <i class="fas fa-paper-plane me-2 text-primary"></i>Tu Entrega
+                    </h5>
                 </div>
                 <div class="card-body">
                     @if($entregaEstudiante)
                         {{-- Mostrar información de la entrega existente --}}
-                        <div class="p-3 rounded border {{ $entregaEstudiante->calificacion !== null ? 'bg-light' : 'bg-primary-soft' }}">
-                            <p class="mb-1">
-                                <i class="fas fa-calendar-check me-1 text-muted"></i><strong>Entregado el:</strong>
-                                {{ $entregaEstudiante->fecha_entrega->format('d/m/Y H:i A') }}
-                                @if($entregaEstudiante->estado_entrega == 'entregado_tarde')
-                                    <span class="badge bg-warning text-dark rounded-pill ms-2">Tarde</span>
-                                @elseif($entregaEstudiante->estado_entrega == 'calificado')
-                                    <span class="badge bg-success rounded-pill ms-2">Calificado</span>
+                        <div class="card {{ $entregaEstudiante->calificacion !== null ? 'bg-light' : 'bg-primary-soft' }} border-0">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <div>
+                                        <i class="fas fa-calendar-check me-2 text-primary"></i>
+                                        <strong>Entregado el:</strong> {{ $entregaEstudiante->fecha_entrega->format('d/m/Y H:i A') }}
+                                    </div>
+                                    <div>
+                                        @if($entregaEstudiante->estado_entrega == 'entregado_tarde')
+                                            <span class="badge bg-warning text-dark">
+                                                <i class="fas fa-clock me-1"></i>Entrega Tardía
+                                            </span>
+                                        @elseif($entregaEstudiante->estado_entrega == 'calificado')
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-check me-1"></i>Calificado
+                                            </span>
+                                        @endif
+                                    </div>
+                                </div>
+
+                                {{-- Contenido de la entrega --}}
+                                @if($entregaEstudiante->ruta_archivo)
+                                    <div class="d-grid gap-2">
+                                        <a href="{{ Storage::url($entregaEstudiante->ruta_archivo) }}" 
+                                           target="_blank" 
+                                           class="btn btn-outline-primary">
+                                            <i class="fas fa-download me-2"></i>Ver/Descargar Archivo
+                                        </a>
+                                    </div>
+                                @elseif($entregaEstudiante->texto_entrega)
+                                    <div class="card bg-white">
+                                        <div class="card-body">
+                                            <h6 class="text-muted mb-3">
+                                                <i class="fas fa-align-left me-2"></i>Texto Entregado:
+                                            </h6>
+                                            <div class="text-break">
+                                                <pre class="mb-0">{{ $entregaEstudiante->texto_entrega }}</pre>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @elseif($entregaEstudiante->url_entrega)
+                                    <div class="d-grid gap-2">
+                                        <a href="{{ $entregaEstudiante->url_entrega }}" 
+                                           target="_blank" 
+                                           rel="noopener noreferrer" 
+                                           class="btn btn-outline-primary">
+                                            <i class="fas fa-external-link-alt me-2"></i>Abrir Enlace
+                                        </a>
+                                    </div>
                                 @endif
-                            </p>
 
-                            {{-- Mostrar contenido entregado --}}
-                            @if($entregaEstudiante->ruta_archivo)
-                                <p class="mb-1 mt-2">
-                                    <i class="fas fa-file-alt me-1 text-muted"></i><strong>Archivo:</strong>
-                                    <a href="{{ Storage::url($entregaEstudiante->ruta_archivo) }}" target="_blank" class="btn btn-sm btn-outline-secondary ms-2">
-                                        <i class="fas fa-download me-1"></i> Ver/Descargar Archivo
-                                    </a>
-                                </p>
-                            @elseif($entregaEstudiante->texto_entrega)
-                                <p class="mb-1 mt-2"><i class="fas fa-align-left me-1 text-muted"></i><strong>Texto Entregado:</strong></p>
-                                <div class="p-3 bg-white border rounded mb-2 text-break" style="max-height: 200px; overflow-y: auto;"><pre class="mb-0" style="white-space: pre-wrap; word-wrap: break-word;">{{ $entregaEstudiante->texto_entrega }}</pre></div>
-                            @elseif($entregaEstudiante->url_entrega)
-                                <p class="mb-1 mt-2">
-                                    <i class="fas fa-link me-1 text-muted"></i><strong>Enlace:</strong>
-                                    <a href="{{ $entregaEstudiante->url_entrega }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-info ms-2">
-                                        <i class="fas fa-external-link-alt me-1"></i> Abrir Enlace
-                                    </a>
-                                </p>
-                            @endif
-
-                            {{-- Mostrar Calificación y Retroalimentación si existen --}}
-                            @if($entregaEstudiante->calificacion !== null)
-                                <hr class="my-3">
-                                <h6 class="text-success"><i class="fas fa-check-circle me-1"></i>Calificación</h6>
-                                <p class="mb-1 fs-4">
-                                    <span class="fw-bold">{{ $entregaEstudiante->calificacion }}</span> / <small class="text-muted">{{ $tarea->puntos_maximos ?? 'N/A' }} pts</small>
-                                </p>
-                                @if($entregaEstudiante->retroalimentacion)
-                                    <p class="mb-1 mt-2"><strong><i class="fas fa-comment-dots me-1 text-muted"></i>Retroalimentación del Docente:</strong></p>
-                                    <div class="p-3 bg-white border rounded text-break">{!! nl2br(e($entregaEstudiante->retroalimentacion)) !!}</div>
+                                {{-- Calificación y Retroalimentación --}}
+                                @if($entregaEstudiante->calificacion !== null)
+                                    <hr class="my-4">
+                                    <div class="text-center mb-3">
+                                        <h6 class="text-success mb-2">
+                                            <i class="fas fa-star me-2"></i>Calificación
+                                        </h6>
+                                        <div class="display-6 fw-bold text-primary mb-1">
+                                            {{ $entregaEstudiante->calificacion }}
+                                            <small class="text-muted fs-6">/ {{ $tarea->puntos_maximos ?? 'N/A' }} pts</small>
+                                        </div>
+                                    </div>
+                                    @if($entregaEstudiante->retroalimentacion)
+                                        <div class="card bg-white">
+                                            <div class="card-body">
+                                                <h6 class="text-muted mb-3">
+                                                    <i class="fas fa-comment-dots me-2"></i>Retroalimentación del Docente:
+                                                </h6>
+                                                <div class="text-break">
+                                                    {!! nl2br(e($entregaEstudiante->retroalimentacion)) !!}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @else
+                                        <p class="text-center text-muted mb-0">
+                                            <i class="fas fa-info-circle me-2"></i>No hay retroalimentación adicional.
+                                        </p>
+                                    @endif
                                 @else
-                                     <p class="mb-0 mt-2 small fst-italic text-muted">No hay retroalimentación adicional.</p>
+                                    <div class="text-center text-muted mt-3">
+                                        <i class="fas fa-hourglass-half me-2"></i>Tu entrega está pendiente de calificación
+                                    </div>
                                 @endif
-                            @else
-                                <p class="mb-0 mt-3 fst-italic text-muted"><i class="fas fa-hourglass-half me-1"></i>Aún no ha sido calificada.</p>
-                            @endif
+                            </div>
                         </div>
                     @elseif($puedeEntregar)
-                        {{-- Si no hay entrega Y puede entregar, mostrar el formulario --}}
-                        <form action="{{ route('alumno.cursos.tareas.storeEntrega', [$curso->id, $tarea->id]) }}" method="POST" enctype="multipart/form-data">
+                        {{-- Formulario de entrega --}}
+                        <form action="{{ route('alumno.cursos.tareas.storeEntrega', [$curso->id, $tarea->id]) }}" 
+                              method="POST" 
+                              enctype="multipart/form-data" 
+                              class="card bg-light border-0">
                             @csrf
-                            @if($tarea->tipo_entrega == 'archivo')
-                                <div class="mb-3">
-                                    <label for="archivo_entrega" class="form-label fw-bold">Sube tu archivo <span class="text-danger">*</span></label>
-                                    <input class="form-control @error('archivo_entrega') is-invalid @enderror" type="file" id="archivo_entrega" name="archivo_entrega" required>
-                                    @error('archivo_entrega')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                    <div class="form-text">Tipos permitidos: pdf, doc, docx, zip, rar, jpg, png, txt. Máx: 10MB.</div>
-                                </div>
-                            @elseif($tarea->tipo_entrega == 'texto')
-                                <div class="mb-3">
-                                     <label for="texto_entrega" class="form-label fw-bold">Escribe tu respuesta <span class="text-danger">*</span></label>
-                                     <textarea class="form-control @error('texto_entrega') is-invalid @enderror" id="texto_entrega" name="texto_entrega" rows="10" required placeholder="Escribe aquí tu respuesta...">{{ old('texto_entrega') }}</textarea>
-                                     @error('texto_entrega')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                </div>
-                            @elseif($tarea->tipo_entrega == 'url')
-                                 <div class="mb-3">
-                                    <label for="url_entrega" class="form-label fw-bold">Pega el enlace (URL) <span class="text-danger">*</span></label>
-                                    <input type="url" class="form-control @error('url_entrega') is-invalid @enderror" id="url_entrega" name="url_entrega" value="{{ old('url_entrega') }}" placeholder="https://ejemplo.com/tu-entrega" required>
-                                     @error('url_entrega')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                </div>
-                            @elseif($tarea->tipo_entrega == 'ninguno')
-                                 <div class="alert alert-secondary text-center" role="alert">
-                                    <i class="fas fa-info-circle me-1"></i>Esta tarea no requiere una entrega en línea.
-                                 </div>
-                            @endif
+                            <div class="card-body">
+                                @if($tarea->tipo_entrega == 'archivo')
+                                    <div class="mb-4">
+                                        <label class="form-label">
+                                            <i class="fas fa-file me-2"></i>Sube tu archivo
+                                            <span class="text-danger">*</span>
+                                        </label>
+                                        <input class="form-control form-control-lg @error('archivo_entrega') is-invalid @enderror" 
+                                               type="file" 
+                                               id="archivo_entrega" 
+                                               name="archivo_entrega" 
+                                               required>
+                                        @error('archivo_entrega')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                        <div class="form-text">
+                                            <i class="fas fa-info-circle me-1"></i>
+                                            Formatos permitidos: pdf, doc, docx, zip, rar, jpg, png, txt. Máx: 10MB
+                                        </div>
+                                    </div>
+                                @elseif($tarea->tipo_entrega == 'texto')
+                                    <div class="mb-4">
+                                        <label class="form-label">
+                                            <i class="fas fa-pen me-2"></i>Escribe tu respuesta
+                                            <span class="text-danger">*</span>
+                                        </label>
+                                        <textarea class="form-control form-control-lg @error('texto_entrega') is-invalid @enderror" 
+                                                  id="texto_entrega" 
+                                                  name="texto_entrega" 
+                                                  rows="10" 
+                                                  required 
+                                                  placeholder="Escribe aquí tu respuesta...">{{ old('texto_entrega') }}</textarea>
+                                        @error('texto_entrega')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+                                @elseif($tarea->tipo_entrega == 'url')
+                                    <div class="mb-4">
+                                        <label class="form-label">
+                                            <i class="fas fa-link me-2"></i>Pega el enlace (URL)
+                                            <span class="text-danger">*</span>
+                                        </label>
+                                        <input type="url" 
+                                               class="form-control form-control-lg @error('url_entrega') is-invalid @enderror" 
+                                               id="url_entrega" 
+                                               name="url_entrega" 
+                                               value="{{ old('url_entrega') }}" 
+                                               placeholder="https://ejemplo.com/tu-entrega" 
+                                               required>
+                                        @error('url_entrega')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+                                @elseif($tarea->tipo_entrega == 'ninguno')
+                                    <div class="text-center py-4">
+                                        <i class="fas fa-info-circle fa-2x text-primary mb-2"></i>
+                                        <p class="mb-0">Esta tarea no requiere una entrega en línea.</p>
+                                    </div>
+                                @endif
 
-                            @if($tarea->tipo_entrega != 'ninguno')
-                                <button type="submit" class="btn btn-primary btn-lg w-100">
-                                    <i class="fas fa-paper-plane me-1"></i> Enviar Entrega
-                                </button>
-                            @endif
+                                @if($tarea->tipo_entrega != 'ninguno')
+                                    <div class="d-grid">
+                                        <button type="submit" class="btn btn-primary btn-lg">
+                                            <i class="fas fa-paper-plane me-2"></i>Enviar Entrega
+                                        </button>
+                                    </div>
+                                @endif
+                            </div>
                         </form>
                     @else
-                         <div class="alert alert-warning text-center" role="alert">
-                            <i class="fas fa-clock me-2"></i>El plazo para entregar esta tarea ha finalizado.
-                         </div>
+                        <div class="text-center py-4">
+                            <i class="fas fa-clock fa-3x text-warning mb-3"></i>
+                            <h5>Plazo de entrega finalizado</h5>
+                            <p class="text-muted mb-0">Ya no es posible realizar entregas para esta tarea.</p>
+                        </div>
                     @endif
                 </div>
             </div>
@@ -164,55 +241,93 @@
 
         {{-- Columna Lateral: Detalles de la Tarea --}}
         <div class="col-lg-4">
-            <div class="card shadow-sm sticky-lg-top"> {{-- sticky-lg-top para que se quede fija en pantallas grandes --}}
-                <div class="card-header bg-light">
-                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Detalles de la Tarea</h5>
+            <div class="card shadow-sm hover-shadow-sm sticky-lg-top">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle me-2 text-primary"></i>Detalles
+                    </h5>
                 </div>
-                <ul class="list-group list-group-flush">
-                    <li class="list-group-item">
-                        <i class="fas fa-file-signature fa-fw text-muted me-2"></i><strong>Tipo de Entrega:</strong> {{ ucfirst($tarea->tipo_entrega) }}
-                    </li>
-                    <li class="list-group-item">
-                        <i class="fas fa-star fa-fw text-muted me-2"></i><strong>Puntos Máximos:</strong> {{ $tarea->puntos_maximos ?? 'N/A' }}
-                    </li>
-                    <li class="list-group-item">
-                        <i class="fas fa-calendar-alt fa-fw text-muted me-2"></i><strong>Fecha Límite:</strong>
-                        <span class="fw-bold">{{ $tarea->fecha_limite ? $tarea->fecha_limite->format('d/m/Y, H:i A') : 'Sin fecha límite' }}</span>
-                    </li>
-                    @if($tarea->permite_entrega_tardia)
-                         <li class="list-group-item">
-                            <i class="fas fa-exclamation-triangle fa-fw text-warning me-2"></i><strong>Permite Tardía:</strong> Sí
-                            @if($tarea->fecha_limite_tardia)
-                                (hasta {{ $tarea->fecha_limite_tardia->format('d/m/Y, H:i A') }})
-                            @endif
-                        </li>
-                    @else
-                         <li class="list-group-item">
-                            <i class="fas fa-calendar-times fa-fw text-muted me-2"></i><strong>Permite Tardía:</strong> No
-                        </li>
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item d-flex align-items-center">
+                        <i class="fas fa-file-signature fa-fw text-primary me-3"></i>
+                        <div>
+                            <small class="text-muted d-block">Tipo de Entrega</small>
+                            <strong>{{ ucfirst($tarea->tipo_entrega) }}</strong>
+                        </div>
+                    </div>
+                    <div class="list-group-item d-flex align-items-center">
+                        <i class="fas fa-star fa-fw text-primary me-3"></i>
+                        <div>
+                            <small class="text-muted d-block">Puntos Máximos</small>
+                            <strong>{{ $tarea->puntos_maximos ?? 'N/A' }}</strong>
+                        </div>
+                    </div>
+                    <div class="list-group-item d-flex align-items-center">
+                        <i class="fas fa-calendar-alt fa-fw text-primary me-3"></i>
+                        <div>
+                            <small class="text-muted d-block">Fecha Límite</small>
+                            <strong>{{ $tarea->fecha_limite ? $tarea->fecha_limite->format('d/m/Y, H:i A') : 'Sin fecha límite' }}</strong>
+                        </div>
+                    </div>
+                    <div class="list-group-item d-flex align-items-center">
+                        @if($tarea->permite_entrega_tardia)
+                            <i class="fas fa-exclamation-triangle fa-fw text-warning me-3"></i>
+                            <div>
+                                <small class="text-muted d-block">Entrega Tardía</small>
+                                <strong>Permitida 
+                                    @if($tarea->fecha_limite_tardia)
+                                        hasta {{ $tarea->fecha_limite_tardia->format('d/m/Y, H:i A') }}
+                                    @endif
+                                </strong>
+                            </div>
+                        @else
+                            <i class="fas fa-calendar-times fa-fw text-danger me-3"></i>
+                            <div>
+                                <small class="text-muted d-block">Entrega Tardía</small>
+                                <strong>No permitida</strong>
+                            </div>
+                        @endif
+                    </div>
+                    @if($tarea->modulo)
+                        <div class="list-group-item d-flex align-items-center">
+                            <i class="fas fa-sitemap fa-fw text-primary me-3"></i>
+                            <div>
+                                <small class="text-muted d-block">Módulo</small>
+                                <strong>{{ $tarea->modulo->titulo }}</strong>
+                            </div>
+                        </div>
                     @endif
-                     @if($tarea->modulo)
-                        <li class="list-group-item">
-                            <i class="fas fa-sitemap fa-fw text-muted me-2"></i><strong>Módulo:</strong> {{ optional($tarea->modulo)->titulo }}
-                        </li>
-                    @endif
-                </ul>
+                </div>
             </div>
         </div>
     </div>
-
 </div>
 
-{{-- Estilo para un fondo suave en la tarjeta de entrega --}}
 <style>
-    .bg-primary-soft {
-        background-color: #cfe2ff; /* Un azul claro de Bootstrap */
-        border-color: #b6d4fe;
+.hover-shadow-sm {
+    transition: all 0.2s ease-in-out;
+}
+.hover-shadow-sm:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 .3rem .5rem rgba(0,0,0,.08)!important;
+}
+.bg-primary-soft {
+    background-color: rgba(13, 110, 253, 0.1);
+    border-color: rgba(13, 110, 253, 0.2);
+}
+.text-break pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    margin-bottom: 0;
+    font-family: inherit;
+}
+.sticky-lg-top {
+    top: 1rem;
+}
+@media (max-width: 991.98px) {
+    .sticky-lg-top {
+        position: static;
     }
-    .text-break pre { /* Para que el pre respete el text-break del div padre */
-        white-space: pre-wrap;
-        word-wrap: break-word;
-        margin-bottom: 0;
-    }
+}
 </style>
 @endsection

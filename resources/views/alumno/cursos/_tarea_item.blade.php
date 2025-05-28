@@ -7,44 +7,66 @@
 
 {{-- Verifica si $cursoDeTarea se pudo obtener antes de intentar usarlo en la ruta --}}
 @if($cursoDeTarea)
-    <div class="list-group-item list-group-item-action py-3 px-0 mb-2 border-bottom"> {{-- Estilo de item de lista, padding y borde --}}
-        <div class="d-flex w-100 justify-content-between align-items-center">
-            <div class="flex-grow-1">
-                <h6 class="mb-1">
-                    <a href="{{ route('alumno.cursos.tareas.show', [$cursoDeTarea->id, $tarea->id]) }}" class="text-decoration-none fw-bold">
-                        <i class="fas fa-clipboard-list fa-fw me-2 text-primary"></i>{{ $tarea->titulo }}
-                    </a>
-                </h6>
-                @if($tarea->descripcion)
-                    <p class="mb-1 small text-muted">{{ Str::limit($tarea->descripcion, 120) }}</p>
-                @endif
-                <div class="d-flex flex-wrap small text-muted mt-1">
-                    <span class="me-3" title="Fecha Límite">
-                        <i class="fas fa-calendar-alt fa-fw me-1"></i>
-                        <strong>Límite:</strong> {{ $tarea->fecha_limite ? $tarea->fecha_limite->format('d/m/Y H:i') : 'Sin límite' }}
-                        @if($tarea->permite_entrega_tardia)
-                            <span class="badge bg-warning-light text-warning-dark ms-1" style="font-size: 0.75em;">
-                                <i class="fas fa-exclamation-triangle fa-fw"></i>
-                                @if($tarea->fecha_limite_tardia)
-                                    Tardía hasta: {{ $tarea->fecha_limite_tardia->format('d/m/Y') }}
-                                @else
-                                    Permite tardía
-                                @endif
-                            </span>
-                        @endif
-                    </span>
-                    <span class="me-3" title="Puntos Máximos">
-                        <i class="fas fa-star fa-fw me-1"></i>
-                        <strong>Puntos:</strong> {{ $tarea->puntos_maximos ?? 'N/A' }}
-                    </span>
-                    <span title="Tipo de Entrega">
-                        <i class="fas fa-file-import fa-fw me-1"></i>
-                        <strong>Tipo:</strong> {{ ucfirst($tarea->tipo_entrega) }}
-                    </span>
+    <div class="card shadow-sm hover-shadow-sm mb-3">
+        <div class="card-body">
+            <div class="d-flex align-items-start gap-3">
+                {{-- Estado de la tarea con indicador visual --}}
+                <div class="task-status-indicator">
+                    @if($tarea->estado == 'pendiente')
+                        <div class="status-circle bg-warning" title="Pendiente"></div>
+                    @elseif($tarea->estado == 'entregada')
+                        <div class="status-circle bg-info" title="Entregada"></div>
+                    @elseif($tarea->estado == 'calificada')
+                        <div class="status-circle bg-success" title="Calificada"></div>
+                    @elseif($tarea->estado == 'vencida')
+                        <div class="status-circle bg-danger" title="Vencida"></div>
+                    @endif
                 </div>
-            </div>
-            <div class="ms-2"> {{-- Contenedor para el chevron --}}
-                <i class="fas fa-chevron-right text-muted"></i>
+
+                <div class="flex-grow-1">
+                    {{-- Encabezado de la tarea --}}
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h5 class="card-title mb-0">{{ $tarea->titulo }}</h5>
+                        <span class="badge bg-primary rounded-pill">
+                            {{ number_format($tarea->puntaje_maximo, 0) }} pts
+                        </span>
+                    </div>
+
+                    {{-- Descripción --}}
+                    @if($tarea->descripcion)
+                        <p class="card-text text-muted mb-3">
+                            {{ Str::limit($tarea->descripcion, 150) }}
+                        </p>
+                    @endif
+
+                    {{-- Detalles y fechas --}}
+                    <div class="d-flex flex-wrap gap-3 mb-3">
+                        <div class="small text-muted">
+                            <i class="fas fa-clock me-1"></i>
+                            Fecha límite: {{ $tarea->fecha_limite->format('d/m/Y H:i') }}
+                        </div>
+                        @if($tarea->estado == 'calificada')
+                            <div class="small text-success">
+                                <i class="fas fa-star me-1"></i>
+                                Calificación: {{ number_format($tarea->calificacion, 1) }}/{{ number_format($tarea->puntaje_maximo, 1) }}
+                            </div>
+                        @endif
+                    </div>
+
+                    {{-- Botones de acción --}}
+                    <div class="d-flex gap-2">
+                        <a href="{{ route('alumno.tareas.show', $tarea->id) }}" 
+                           class="btn btn-sm btn-primary">
+                            <i class="fas fa-eye me-1"></i>Ver Detalles
+                        </a>
+                        @if($tarea->estado == 'pendiente')
+                            <a href="{{ route('alumno.tareas.entregar', $tarea->id) }}" 
+                               class="btn btn-sm btn-success">
+                                <i class="fas fa-upload me-1"></i>Entregar
+                            </a>
+                        @endif
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -64,5 +86,20 @@
         color: #664d03; /* Color de texto Bootstrap para warning */
         background-color: #fff3cd; /* Color de fondo Bootstrap para warning claro */
         border: 1px solid #ffecb5;
+    }
+    .task-status-indicator {
+        padding-top: 5px;
+    }
+    .status-circle {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+    }
+    .hover-shadow-sm {
+        transition: all 0.2s ease-in-out;
+    }
+    .hover-shadow-sm:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 .125rem .25rem rgba(0,0,0,.075)!important;
     }
 </style>
