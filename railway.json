@@ -1,0 +1,13 @@
+{
+    "build": {
+        "builder": "NIXPACKS"
+    },
+    "deploy": {
+        "startCommand": "php -S 0.0.0.0:$PORT -t public",
+        "buildCommand": "composer install --no-dev --prefer-dist && npm install && npm run build && chmod -R 777 storage bootstrap/cache public && php artisan optimize:clear"
+    },
+    "environment": {
+        "APP_ENV": "production",
+        "APP_DEBUG": "false"
+    }
+}
