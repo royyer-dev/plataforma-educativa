@@ -1,5 +1,132 @@
 @extends('layouts.app')
 
+@push('styles')
+<style>
+    /* Estilos base para elementos comunes */
+    .container {
+        max-width: 1200px;
+    }
+
+    /* Animaciones y transiciones */
+    .hover-lift {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .hover-lift:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important;
+    }
+
+    /* Mejoras visuales para tarjetas */
+    .card {
+        border: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        transition: all 0.3s ease;
+    }
+    .card:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    /* Estilos para los tabs */
+    .nav-tabs {
+        border-bottom: 2px solid #e9ecef;
+        gap: 0.5rem;
+    }
+    .nav-tabs .nav-link {
+        border: none;
+        color: #6c757d;
+        padding: 0.75rem 1.25rem;
+        font-weight: 500;
+        border-radius: 8px 8px 0 0;
+        transition: all 0.2s ease;
+    }
+    .nav-tabs .nav-link:hover {
+        background: #f8f9fa;
+        color: #0d6efd;
+    }
+    .nav-tabs .nav-link.active {
+        color: #0d6efd;
+        background: #f8f9fa;
+        position: relative;
+    }
+    .nav-tabs .nav-link.active::after {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: #0d6efd;
+    }
+
+    /* Botones y acciones */
+    .btn {
+        padding: 0.5rem 1rem;
+        font-weight: 500;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+    }
+    .btn-group-sm .btn {
+        padding: 0.25rem 0.75rem;
+    }
+    .btn i {
+        transition: transform 0.2s ease;
+    }
+    .btn:hover i {
+        transform: scale(1.1);
+    }
+
+    /* Badges y etiquetas */
+    .badge {
+        padding: 0.5em 0.8em;
+        font-weight: 500;
+        border-radius: 6px;
+    }
+
+    /* Items de lista */
+    .list-group-item {
+        border-left: none;
+        border-right: none;
+        transition: all 0.2s ease;
+    }
+    .list-group-item:hover {
+        background-color: #f8f9fa;
+    }
+    .list-group-item .actions {
+        opacity: 0.7;
+        transition: opacity 0.2s ease;
+    }
+    .list-group-item:hover .actions {
+        opacity: 1;
+    }
+
+    /* Mejoras en la tipografía */
+    h1, h2, h3, h4, h5, h6 {
+        color: #2c3e50;
+    }
+    .text-muted {
+        color: #6c757d !important;
+    }
+    
+    /* Contenedor de descripción */
+    .description-container {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-top: 1rem;
+    }
+
+    /* Iconos en los botones de acción */
+    .action-icon {
+        width: 20px;
+        height: 20px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 0.5rem;
+    }
+</style>
+@endpush
+
 @section('content')
 <div class="container py-4"> {{-- Added padding --}}
 
@@ -18,16 +145,18 @@
             {{ session('status') }}
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
-    @endif
-
-    {{-- Course Header Section --}}
+    @endif    {{-- Course Header Section --}}
     <div class="row mb-4 align-items-center">
         <div class="col-md-8">
-            <h1 class="display-5 fw-bold">{{ $curso->titulo }}</h1>
-            <p class="text-muted">Código: {{ $curso->codigo_curso ?? 'N/A' }}</p>
+            <h1 class="course-title display-5">{{ $curso->titulo }}</h1>
+            <p class="text-muted d-flex align-items-center">
+                <i class="fas fa-hashtag me-2"></i>
+                <span>Código: {{ $curso->codigo_curso ?? 'N/A' }}</span>
+            </p>
         </div>
         <div class="col-md-4 text-md-end">
-            <a href="{{ route('docente.cursos.edit', $curso->id) }}" class="btn btn-warning btn-lg">
+            <a href="{{ route('docente.cursos.edit', $curso->id) }}" 
+               class="btn btn-warning btn-lg shadow-sm hover-lift">
                 <i class="fas fa-edit me-2"></i>Editar Curso
             </a>
         </div>

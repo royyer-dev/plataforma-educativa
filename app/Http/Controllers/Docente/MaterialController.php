@@ -35,22 +35,31 @@ class MaterialController extends Controller
      */
     public function store(Request $request, Curso $curso): RedirectResponse
     {
-       // dd('Llegó a store'); // <--- AÑADE ESTA LÍNEA PRIMERO
-
-        $this->authorizeTeacherAccess($curso); // Verifica permiso
+        $this->authorizeTeacherAccess($curso);
         
-        // Validación (Mejor práctica: Mover a Form Request - StoreMaterialRequest)
-        $validatedData = $request->validate([
+        // Validate all required fields
+        $rules = [
             'titulo' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
-            'modulo_id' => 'nullable|integer|exists:modulos,id,curso_id,' . $curso->id, // Módulo opcional, pero debe pertenecer al curso si se envía
+            'modulo_id' => 'nullable|integer|exists:modulos,id,curso_id,' . $curso->id,
             'tipo_material' => 'required|in:archivo,enlace,texto,video',
-            // Validación condicional
-            'ruta_archivo' => 'required_if:tipo_material,archivo|file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,zip,jpg,jpeg,png,gif|max:10240', // Max 10MB - ajustar
-            'enlace_url' => 'required_if:tipo_material,enlace,video|url|max:2048',
-            'contenido_texto' => 'required_if:tipo_material,texto|string',
-        ]);
-        dd('Validación pasada', $validatedData);
+        ];
+
+        // Add conditional validation rules based on material type
+        switch ($request->tipo_material) {
+            case 'archivo':
+                $rules['ruta_archivo'] = 'required|file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,zip,jpg,jpeg,png,gif|max:10240';
+                break;
+            case 'enlace':
+            case 'video':
+                $rules['enlace_url'] = 'required|url|max:2048';
+                break;
+            case 'texto':
+                $rules['contenido_texto'] = 'required|string';
+                break;
+        }
+
+        $validatedData = $request->validate($rules);
 
         // Añadir IDs y limpiar/preparar datos
         $validatedData['curso_id'] = $curso->id;
@@ -105,16 +114,29 @@ class MaterialController extends Controller
         $this->ensureMaterialBelongsToCourse($curso, $material); // Verifica pertenencia
 
         // Validación (Mejor práctica: Mover a Form Request - UpdateMaterialRequest)
-         $validatedData = $request->validate([
+        $rules = [
             'titulo' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
             'modulo_id' => 'nullable|integer|exists:modulos,id,curso_id,' . $curso->id,
             'tipo_material' => 'required|in:archivo,enlace,texto,video',
-            // Validación condicional - archivo es opcional al actualizar
-            'ruta_archivo' => 'sometimes|required_if:tipo_material,archivo|file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,zip,jpg,jpeg,png,gif|max:10240',
-            'enlace_url' => 'required_if:tipo_material,enlace,video|url|max:2048',
-            'contenido_texto' => 'required_if:tipo_material,texto|string',
-        ]);
+        ];
+
+        // Add conditional validation rules based on material type
+        switch ($request->tipo_material) {
+            case 'archivo':
+                // Make file optional on update
+                $rules['ruta_archivo'] = 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,zip,jpg,jpeg,png,gif|max:10240';
+                break;
+            case 'enlace':
+            case 'video':
+                $rules['enlace_url'] = 'required|url|max:2048';
+                break;
+            case 'texto':
+                $rules['contenido_texto'] = 'required|string';
+                break;
+        }
+
+        $validatedData = $request->validate($rules);
 
         $validatedData['modulo_id'] = $request->input('modulo_id') ?: null;
 

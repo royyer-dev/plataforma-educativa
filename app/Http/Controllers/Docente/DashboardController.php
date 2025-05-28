@@ -60,50 +60,13 @@ class DashboardController extends Controller
                                     ->get();
         }
 
-        // --- DATOS PARA GRÁFICAS ---
-
-        // 1. Datos para Gráfica: Distribución de Estudiantes por Curso
-        // Filtrar cursos que realmente tengan estudiantes para que la gráfica no sea muy grande si hay muchos cursos sin alumnos
-        $cursosParaGraficaEstudiantes = $cursosDocente->filter(function ($curso) {
-            return $curso->estudiantes_activos_count > 0;
-        });
-        $chartEstudiantesPorCursoLabels = $cursosParaGraficaEstudiantes->pluck('titulo');
-        $chartEstudiantesPorCursoData = $cursosParaGraficaEstudiantes->pluck('estudiantes_activos_count');
-
-        // 2. Datos para Gráfica: Estado de Calificación de Entregas (General)
-        $entregasTotalesCursosDocente = 0;
-        $entregasCalificadasCursosDocente = 0;
-        if ($cursosIds->isNotEmpty()) {
-            $entregasTotalesCursosDocente = Entrega::whereHas('tarea', function ($query) use ($cursosIds) {
-                                                    $query->whereIn('curso_id', $cursosIds);
-                                                })->count();
-            $entregasCalificadasCursosDocente = Entrega::whereHas('tarea', function ($query) use ($cursosIds) {
-                                                    $query->whereIn('curso_id', $cursosIds);
-                                                })
-                                                ->whereNotNull('calificacion')
-                                                ->count();
-        }
-        $chartEstadoEntregasLabels = ['Calificadas', 'Pendientes de Calificar'];
-        $entregasPendientesData = $entregasTotalesCursosDocente - $entregasCalificadasCursosDocente;
-        // Asegurarse que no sea negativo si no hay entregas totales pero sí calificadas (caso raro)
-        $entregasPendientesData = $entregasPendientesData < 0 ? 0 : $entregasPendientesData;
-
-        $chartEstadoEntregasData = [
-            $entregasCalificadasCursosDocente,
-            $entregasPendientesData
-        ];
-
         return view('docente.dashboard', compact(
             'cursosDocente',
             'solicitudesPendientesCount',
             'totalCursosActivos',
             'totalEstudiantesInscritos',
             'totalTareasSinCalificar',
-            'ultimasEntregas',
-            'chartEstudiantesPorCursoLabels',
-            'chartEstudiantesPorCursoData',
-            'chartEstadoEntregasLabels',
-            'chartEstadoEntregasData'
+            'ultimasEntregas'
         ));
     }
 

@@ -1,4 +1,113 @@
-@extends('layouts.app') {{-- Usa tu layout principal --}}
+@extends('layouts.app')
+
+@push('styles')
+<style>
+    /* Estilos para el formulario */
+    .form-control, .form-select {
+        border: 1px solid #e2e8f0;
+        padding: 0.75rem 1rem;
+        border-radius: 0.5rem;
+        transition: all 0.2s ease;
+    }
+    .form-control:focus, .form-select:focus {
+        border-color: #ffc107;
+        box-shadow: 0 0 0 0.2rem rgba(255, 193, 7, 0.25);
+    }
+
+    /* Estilos para la tarjeta */
+    .card {
+        border: none;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        border-radius: 1rem;
+        overflow: hidden;
+    }
+    .card-header {
+        background-color: #ffc107;
+        padding: 1.25rem;
+        border-bottom: none;
+    }
+    .card-header h4 {
+        margin: 0;
+        color: #2c3e50;
+        font-weight: 600;
+    }
+
+    /* Estilos para las etiquetas */
+    .form-label {
+        color: #2c3e50;
+        margin-bottom: 0.5rem;
+    }
+    .form-label.fw-bold {
+        font-weight: 600 !important;
+    }
+
+    /* Estilos para los campos requeridos */
+    .text-danger {
+        font-weight: bold;
+        font-size: 1.2em;
+    }
+
+    /* Estilos para la previsualización de imagen */
+    .image-preview {
+        border-radius: 0.5rem;
+        border: 2px solid #e2e8f0;
+        padding: 0.5rem;
+        background: #f8f9fa;
+        transition: all 0.2s ease;
+    }
+    .image-preview:hover {
+        border-color: #ffc107;
+    }
+    .image-preview img {
+        border-radius: 0.25rem;
+        max-width: 100%;
+        height: auto;
+    }
+
+    /* Estilos para los botones */
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.5rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+    .btn:hover {
+        transform: translateY(-1px);
+    }
+    .btn-warning {
+        background-color: #ffc107;
+        border: none;
+        color: #2c3e50;
+    }
+    .btn-warning:hover {
+        background-color: #ffca2c;
+        box-shadow: 0 4px 6px -1px rgba(255, 193, 7, 0.3);
+    }
+    .btn-outline-secondary {
+        border: 2px solid #6c757d;
+    }
+    .btn-outline-secondary:hover {
+        background-color: #6c757d;
+        color: white;
+    }
+
+    /* Animaciones para los iconos */
+    .fas {
+        transition: transform 0.2s ease;
+    }
+    .btn:hover .fas {
+        transform: scale(1.1);
+    }
+
+    /* Separador personalizado */
+    hr {
+        border: none;
+        height: 2px;
+        background: linear-gradient(to right, #ffc107, transparent);
+        opacity: 0.2;
+    }
+</style>
+@endpush
 
 @section('content')
 <div class="container py-4"> {{-- Añadido padding general al container --}}

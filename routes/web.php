@@ -57,6 +57,7 @@ Route::prefix('perfil')->name('perfil.')->group(function () {
     Route::patch('/password', [PerfilController::class, 'updatePassword'])->name('updatePassword');
     Route::patch('/update', [PerfilController::class, 'updateProfile'])->name('update');
     Route::patch('/picture', [PerfilController::class, 'updatePicture'])->name('updatePicture');
+    Route::delete('/', [PerfilController::class, 'destroy'])->name('destroy');
 
             // (Aquí podrías añadir rutas para actualizar nombre/email en el futuro);
     });

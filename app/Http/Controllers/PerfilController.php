@@ -12,6 +12,8 @@ use Illuminate\Validation\Rule; // <-- Añadido para validación unique
 use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
 use App\Models\Usuario; // Importar modelo Usuario
+use Illuminate\Support\Facades\DB; // Para transacciones
+use Illuminate\Support\Facades\Log; // Para logging de errores
 
 class PerfilController extends Controller
 {
@@ -158,5 +160,69 @@ class PerfilController extends Controller
         // Redirigir de vuelta al perfil con mensaje de éxito
         return redirect()->route('perfil.show')
                          ->with('status', '¡Contraseña actualizada exitosamente!'); // 'status' para el mensaje general
+    }
+
+    /**
+     * Elimina la cuenta del usuario y todos los datos asociados
+     */
+    public function destroy(Request $request)
+    {
+        $request->validate([
+            'password_confirmation' => 'required|string',
+        ]);
+
+        $user = $request->user();
+
+        // Verificar contraseña
+        if (!Hash::check($request->password_confirmation, $user->password)) {
+            return back()
+                ->withErrors(['password_confirmation' => 'La contraseña proporcionada es incorrecta.'])
+                ->withInput();
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Si el usuario es docente, eliminar sus cursos y materiales
+            if ($user->hasRole('docente')) {
+                foreach ($user->cursos as $curso) {
+                    // Eliminar materiales del curso
+                    $curso->materiales()->delete();
+                    // Eliminar curso
+                    $curso->delete();
+                }
+            }
+
+            // Si el usuario es estudiante, eliminar sus inscripciones y entregas
+            if ($user->hasRole('estudiante')) {
+                $user->inscripciones()->delete();
+                $user->entregas()->delete();
+            }
+
+            // Eliminar foto de perfil si existe
+            if ($user->foto) {
+                Storage::disk('public')->delete($user->foto);
+            }
+
+            // Eliminar usuario
+            $user->delete();
+
+            DB::commit();
+
+            // Cerrar sesión
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return redirect()->route('home')
+                ->with('status', 'Tu cuenta ha sido eliminada permanentemente.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error al eliminar la cuenta de usuario: ' . $e->getMessage());
+
+            return back()
+                ->with('error', 'Ha ocurrido un error al eliminar tu cuenta. Por favor, inténtalo de nuevo más tarde.');
+        }
     }
 }

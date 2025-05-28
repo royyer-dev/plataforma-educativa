@@ -1,12 +1,40 @@
 @extends('layouts.app')
 
+@push('styles')
+<style>
+    .hover-shadow {
+        transition: box-shadow 0.3s ease-in-out;
+    }
+    .hover-shadow:hover {
+        box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
+    }
+    .card {
+        border-radius: 0.5rem;
+        overflow: hidden;
+    }
+    .badge {
+        padding: 0.4em 0.8em;
+        font-weight: 500;
+    }
+    .list-group-item {
+        transition: background-color 0.2s ease;
+    }
+    .list-group-item:hover {
+        background-color: rgba(0,0,0,.01);
+    }
+    .btn-outline-primary {
+        border-width: 1.5px;
+    }
+    .card-header {
+        border-bottom: 1px solid rgba(0,0,0,.05);
+    }
+</style>
+@endpush
+
 @section('content')
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1>Panel del Docente</h1>
-        <a href="{{ route('docente.cursos.create') }}" class="btn btn-primary">
-            <i class="fas fa-plus me-1"></i> Crear Nuevo Curso
-        </a>
+        <h1 class="h2 mb-0 text-gray-800 fw-bold"><i class="fas fa-tachometer-alt me-2 text-primary"></i>Panel del Docente</h1>
     </div>
 
     {{-- Mensajes Flash --}}
@@ -93,27 +121,31 @@
                 </a>
             </div>
         </div>
-    </div>
-
-    {{-- Fila para Cursos Recientes y Actividad Reciente --}}
+    </div>    {{-- Fila para Cursos Recientes y Actividad Reciente --}}
     <div class="row">
         <div class="col-lg-7 mb-4">
-            <div class="card h-100 shadow-sm">
-                <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                    <span><i class="fas fa-list-alt me-1"></i> Mis Cursos (Últimos 5 o Activos)</span>
-                    <a href="{{ route('docente.cursos.index') }}" class="btn btn-sm btn-outline-secondary">Ver Todos</a>
+            <div class="card border-0 h-100 shadow-sm hover-shadow">
+                <div class="card-header bg-white border-bottom border-light d-flex justify-content-between align-items-center py-3">
+                    <span class="fw-bold text-primary"><i class="fas fa-list-alt me-2"></i>Mis Cursos (Últimos 5)</span>
+                    <a href="{{ route('docente.cursos.index') }}" class="btn btn-sm btn-outline-primary">Ver Todos</a>
                 </div>
                 <div class="card-body">
                     @if($cursosDocente && $cursosDocente->count() > 0)
                         <ul class="list-group list-group-flush">
-                            @foreach($cursosDocente->take(5) as $curso)
-                                <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-3">
+                            @foreach($cursosDocente->take(5) as $curso)                                <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-3">
                                     <div>
-                                        <a href="{{ route('docente.cursos.show', $curso->id) }}" class="text-decoration-none fw-bold">{{ $curso->titulo }}</a>
+                                        <a href="{{ route('docente.cursos.show', $curso->id) }}" class="text-decoration-none fw-bold text-primary">{{ $curso->titulo }}</a>
                                         <br>
-                                        <small class="text-muted">Estado: {{ ucfirst($curso->estado) }} | Estudiantes Activos: {{ $curso->estudiantes_activos_count }}</small>
+                                        <small class="text-muted">
+                                            <span class="badge {{ $curso->estado === 'publicado' ? 'bg-success' : 'bg-warning' }} rounded-pill me-2">
+                                                {{ ucfirst($curso->estado) }}
+                                            </span>
+                                            <i class="fas fa-users me-1"></i> {{ $curso->estudiantes_activos_count }} estudiantes
+                                        </small>
                                     </div>
-                                    <a href="{{ route('docente.cursos.show', $curso->id) }}" class="btn btn-sm btn-outline-primary">Gestionar</a>
+                                    <a href="{{ route('docente.cursos.show', $curso->id) }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-cog me-1"></i>Gestionar
+                                    </a>
                                 </li>
                             @endforeach
                         </ul>
@@ -122,12 +154,10 @@
                     @endif
                 </div>
             </div>
-        </div>
-
-        <div class="col-lg-5 mb-4">
-            <div class="card h-100 shadow-sm">
-                 <div class="card-header bg-light">
-                    <i class="fas fa-history me-1"></i> Actividad Reciente (Últimas Entregas)
+        </div>        <div class="col-lg-5 mb-4">
+            <div class="card border-0 h-100 shadow-sm hover-shadow">
+                <div class="card-header bg-white border-bottom border-light py-3">
+                    <span class="fw-bold text-primary"><i class="fas fa-history me-2"></i>Actividad Reciente</span>
                 </div>
                 <div class="card-body">
                     @if($ultimasEntregas && $ultimasEntregas->count() > 0)
@@ -155,165 +185,5 @@
                 </div>
             </div>
         </div>
-    </div>
-
-    {{-- Sección de Gráficas --}}
-    <div class="row mt-2">
-        {{-- Gráfica Estudiantes por Curso --}}
-        <div class="col-lg-6 mb-4">
-            <div class="card shadow-sm">
-                <div class="card-header bg-light">
-                    <h5 class="mb-0"><i class="fas fa-users-cog me-2 text-primary"></i>Distribución de Estudiantes por Curso</h5>
-                </div>
-                <div class="card-body p-2" style="min-height: 300px; position: relative;"> {{-- position: relative para el canvas --}}
-                    {{-- Solo mostrar la gráfica si hay datos para ella --}}
-                    @if(isset($chartEstudiantesPorCursoData) && collect($chartEstudiantesPorCursoData)->sum() > 0)
-                        <canvas id="estudiantesPorCursoChart"></canvas>
-                    @else
-                        <div class="d-flex align-items-center justify-content-center h-100">
-                             <p class="text-center text-muted p-5">No hay datos de estudiantes para mostrar en la gráfica.</p>
-                        </div>
-                    @endif
-                </div>
-            </div>
-        </div>
-
-        {{-- Gráfica Estado de Entregas --}}
-        <div class="col-lg-6 mb-4">
-            <div class="card shadow-sm">
-                <div class="card-header bg-light">
-                     <h5 class="mb-0"><i class="fas fa-tasks me-2 text-info"></i>Estado General de Entregas</h5>
-                </div>
-                <div class="card-body p-2" style="min-height: 300px; position: relative;"> {{-- position: relative para el canvas --}}
-                     {{-- Solo mostrar la gráfica si hay datos para ella (al menos una entrega total) --}}
-                     @if(isset($chartEstadoEntregasData) && (isset($chartEstadoEntregasData[0]) || isset($chartEstadoEntregasData[1])) && ( ($chartEstadoEntregasData[0] ?? 0) > 0 || ($chartEstadoEntregasData[1] ?? 0) > 0) )
-                        <canvas id="estadoEntregasChart"></canvas>
-                    @else
-                        <div class="d-flex align-items-center justify-content-center h-100">
-                            <p class="text-center text-muted p-5">No hay datos de entregas para mostrar en la gráfica.</p>
-                        </div>
-                    @endif
-                </div>
-            </div>
-        </div>
-    </div>
-
-</div>
+    </div></div>
 @endsection
-
-@push('scripts')
-{{-- Script para Chart.js --}}
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    // 1. Gráfica de Estudiantes por Curso (Doughnut)
-    const ctxEstudiantes = document.getElementById('estudiantesPorCursoChart');
-    const estudiantesLabels = @json($chartEstudiantesPorCursoLabels ?? []);
-    const estudiantesData = @json($chartEstudiantesPorCursoData ?? []);
-
-    if (ctxEstudiantes && estudiantesData.length > 0 && estudiantesData.some(d => d > 0)) {
-        new Chart(ctxEstudiantes, {
-            type: 'doughnut',
-            data: {
-                labels: estudiantesLabels,
-                datasets: [{
-                    label: 'Nº de Estudiantes',
-                    data: estudiantesData,
-                    backgroundColor: [
-                        'rgba(54, 162, 235, 0.8)', 'rgba(255, 99, 132, 0.8)',
-                        'rgba(255, 206, 86, 0.8)', 'rgba(75, 192, 192, 0.8)',
-                        'rgba(153, 102, 255, 0.8)', 'rgba(255, 159, 64, 0.8)',
-                        'rgba(46, 204, 113, 0.8)', 'rgba(231, 76, 60, 0.8)',
-                        'rgba(241, 196, 15, 0.8)', 'rgba(52, 73, 94, 0.8)'
-                        // Añade más colores si tienes muchos cursos
-                    ],
-                    borderColor: '#fff',
-                    borderWidth: 2,
-                    hoverOffset: 4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            padding: 15,
-                            boxWidth: 12
-                        }
-                    },
-                    title: {
-                        display: false,
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                let label = context.label || '';
-                                if (label) {
-                                    label += ': ';
-                                }
-                                if (context.parsed !== null) {
-                                    label += context.parsed + ' estudiante(s)';
-                                }
-                                return label;
-                            }
-                        }
-                    }
-                }
-            }
-        });
-    }
-
-    // 2. Gráfica de Estado de Entregas (Barras Horizontales)
-    const ctxEntregas = document.getElementById('estadoEntregasChart');
-    const entregasLabels = @json($chartEstadoEntregasLabels ?? []);
-    const entregasData = @json($chartEstadoEntregasData ?? []);
-
-    if (ctxEntregas && entregasData.length > 0 && entregasData.some(d => d > 0)) {
-        new Chart(ctxEntregas, {
-            type: 'bar',
-            data: {
-                labels: entregasLabels,
-                datasets: [{
-                    label: 'Número de Entregas',
-                    data: entregasData,
-                    backgroundColor: [
-                        'rgba(75, 192, 192, 0.8)', // Calificadas
-                        'rgba(255, 99, 132, 0.8)'  // Pendientes
-                    ],
-                    borderColor: [
-                        'rgba(75, 192, 192, 1)',
-                        'rgba(255, 99, 132, 1)'
-                    ],
-                    borderWidth: 1,
-                    barPercentage: 0.6, // Hacer barras un poco más delgadas
-                    categoryPercentage: 0.7
-                }]
-            },
-            options: {
-                indexAxis: 'y',
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    x: {
-                        beginAtZero: true,
-                        ticks: {
-                            stepSize: Math.max(1, Math.ceil(Math.max(...entregasData) / 5)), // Ajustar stepSize dinámicamente
-                            precision: 0 // Asegurar números enteros
-                        }
-                    }
-                },
-                plugins: {
-                    legend: {
-                        display: false
-                    },
-                    title: {
-                        display: false,
-                    }
-                }
-            }
-        });
-    }
-});
-</script>
-@endpush
