@@ -173,7 +173,7 @@
                     {{-- La imagen se llama welcome.png y está en public/images/ --}}
                     <img src="{{ asset('images/welcome.png') }}" class="img-fluid" alt="Plataforma Educativa MiTec">
                 </div>
-                {{-- ^^^ FIN SECCIÓN DE IMAGEN ^^^ --}}
+                {{-- ^^^ FIN SECCION DE IMAGEN ^^^ --}}
             </div>
         </div>
     </header>
