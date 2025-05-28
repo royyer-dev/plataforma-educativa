@@ -3,65 +3,152 @@
 @section('content')
 <div class="container py-5">
     <div class="row justify-content-center">
-        <div class="col-md-10 col-lg-8">
-            <div class="card shadow-lg border-0">
-                <div class="card-header bg-primary text-white text-center">
-                    <h4 class="mb-0 py-2"><i class="fas fa-tachometer-alt me-2"></i>{{ __('Panel Principal') }}</h4>
+        <div class="col-lg-10">
+            {{-- Mensajes Flash --}}
+            @if (session('status'))
+                <div class="alert alert-success alert-dismissible fade show shadow-sm mb-4" role="alert">
+                    <i class="fas fa-check-circle me-2"></i>{{ session('status') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
+            @endif
 
-                <div class="card-body p-4 p-md-5 text-center">
-                    @if (session('status'))
-                        <div class="alert alert-success alert-dismissible fade show" role="alert">
-                            {{ session('status') }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            {{-- Tarjeta de Bienvenida --}}
+            <div class="card shadow-sm border-0 mb-4 overflow-hidden">
+                <div class="card-body p-0">
+                    <div class="row g-0">
+                        {{-- Imagen de Fondo/Decorativa --}}
+                        <div class="col-md-4 bg-primary bg-gradient d-flex align-items-center justify-content-center py-5">
+                            <img src="{{ asset('images/logo_mitec.png') }}" alt="Logo MiTec" class="img-fluid p-4" style="max-width: 200px;">
                         </div>
-                    @endif
+                        
+                        {{-- Contenido de Bienvenida --}}
+                        <div class="col-md-8">
+                            <div class="p-4 p-md-5">
+                                <h2 class="display-6 fw-bold mb-3">¡Bienvenido, {{ Auth::user()->nombre }}!</h2>
+                                <p class="lead text-muted mb-4">
+                                    @if(Auth::user()->tieneRole('docente'))
+                                        Accede a tu panel de docente para gestionar tus cursos y estudiantes.
+                                    @elseif(Auth::user()->tieneRole('estudiante'))
+                                        Explora tus cursos y mantente al día con tus actividades académicas.
+                                    @else
+                                        Gracias por iniciar sesión en MiTec.
+                                    @endif
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-                    <h3 class="mb-3">¡Bienvenido de nuevo, {{ Auth::user()->nombre }}!</h3>
-                    <p class="lead text-muted">Has iniciado sesión en MiTec.</p>
-                    <hr class="my-4">
+            {{-- Acciones Principales --}}
+            <div class="row g-4">
+                @if(Auth::user()->tieneRole('docente'))
+                    {{-- Panel Docente --}}
+                    <div class="col-md-6">
+                        <div class="card h-100 shadow-sm hover-shadow-md border-0">
+                            <div class="card-body p-4 text-center">
+                                <div class="rounded-circle bg-primary bg-opacity-10 p-3 d-inline-block mb-3">
+                                    <i class="fas fa-chalkboard-teacher fa-2x text-primary"></i>
+                                </div>
+                                <h4 class="card-title mb-3">Panel de Docente</h4>
+                                <p class="card-text text-muted mb-4">
+                                    Accede a tu dashboard para gestionar tus cursos, estudiantes y materiales educativos.
+                                </p>
+                                <a href="{{ route('docente.dashboard') }}" class="btn btn-primary btn-lg w-100">
+                                    <i class="fas fa-columns me-2"></i>Ir al Dashboard
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card h-100 shadow-sm hover-shadow-md border-0">
+                            <div class="card-body p-4 text-center">
+                                <div class="rounded-circle bg-info bg-opacity-10 p-3 d-inline-block mb-3">
+                                    <i class="fas fa-book-reader fa-2x text-info"></i>
+                                </div>
+                                <h4 class="card-title mb-3">Gestión de Cursos</h4>
+                                <p class="card-text text-muted mb-4">
+                                    Administra tus cursos, crea contenido y realiza un seguimiento del progreso.
+                                </p>
+                                <a href="{{ route('docente.cursos.index') }}" class="btn btn-info btn-lg w-100 text-white">
+                                    <i class="fas fa-edit me-2"></i>Gestionar Cursos
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                @elseif(Auth::user()->tieneRole('estudiante'))
+                    {{-- Panel Estudiante --}}
+                    <div class="col-md-6">
+                        <div class="card h-100 shadow-sm hover-shadow-md border-0">
+                            <div class="card-body p-4 text-center">
+                                <div class="rounded-circle bg-success bg-opacity-10 p-3 d-inline-block mb-3">
+                                    <i class="fas fa-user-graduate fa-2x text-success"></i>
+                                </div>
+                                <h4 class="card-title mb-3">Panel de Estudiante</h4>
+                                <p class="card-text text-muted mb-4">
+                                    Accede a tu espacio personal para ver tus cursos y actividades pendientes.
+                                </p>
+                                <a href="{{ route('alumno.dashboard') }}" class="btn btn-success btn-lg w-100">
+                                    <i class="fas fa-columns me-2"></i>Ir al Dashboard
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card h-100 shadow-sm hover-shadow-md border-0">
+                            <div class="card-body p-4 text-center">
+                                <div class="rounded-circle bg-primary bg-opacity-10 p-3 d-inline-block mb-3">
+                                    <i class="fas fa-graduation-cap fa-2x text-primary"></i>
+                                </div>
+                                <h4 class="card-title mb-3">Explorar Carreras</h4>
+                                <p class="card-text text-muted mb-4">
+                                    Descubre y explora las carreras y cursos disponibles en nuestra plataforma.
+                                </p>
+                                <a href="{{ route('alumno.carreras.index') }}" class="btn btn-primary btn-lg w-100">
+                                    <i class="fas fa-search me-2"></i>Ver Carreras
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+            </div>
 
-                    <p>¿Qué te gustaría hacer hoy?</p>
-
-                    <div class="mt-4">
-                        @if(Auth::user()->tieneRole('docente'))
-                            {{-- Acciones para Docentes --}}
-                            <a href="{{ route('docente.dashboard') }}" class="btn btn-lg btn-info text-white mx-1 mb-2">
-                                <i class="fas fa-chalkboard-teacher me-2"></i>Ir a mi Panel de Docente
+            {{-- Acciones Rápidas --}}
+            <div class="card shadow-sm border-0 mt-4">
+                <div class="card-body p-4">
+                    <h5 class="card-title mb-4">Acciones Rápidas</h5>
+                    <div class="d-flex flex-wrap gap-2">
+                        <a href="{{ route('perfil.show') }}" class="btn btn-light">
+                            <i class="fas fa-user-circle me-2"></i>Mi Perfil
+                        </a>
+                        @if(Auth::user()->tieneRole('estudiante'))
+                            <a href="{{ route('alumno.agenda.index') }}" class="btn btn-light">
+                                <i class="fas fa-calendar-alt me-2"></i>Mi Agenda
                             </a>
-                            <a href="{{ route('docente.cursos.index') }}" class="btn btn-lg btn-outline-secondary mx-1 mb-2">
-                                <i class="fas fa-edit me-2"></i>Gestionar Mis Cursos
+                            <a href="{{ route('alumno.calificaciones.index') }}" class="btn btn-light">
+                                <i class="fas fa-star me-2"></i>Calificaciones
                             </a>
-                        @elseif(Auth::user()->tieneRole('estudiante'))
-                            {{-- Acciones para Estudiantes --}}
-                            <a href="{{ route('alumno.dashboard') }}" class="btn btn-lg btn-success text-white mx-1 mb-2">
-                                <i class="fas fa-user-graduate me-2"></i>Ir a mi Panel de Estudiante
-                            </a>
-                            <a href="{{ route('alumno.carreras.index') }}" class="btn btn-lg btn-outline-secondary mx-1 mb-2">
-                                <i class="fas fa-search me-2"></i>Explorar Carreras y Cursos
-                            </a>
-                        @else
-                            {{-- Para usuarios sin un rol específico de docente o estudiante, o si la redirección falló --}}
-                            <p class="text-muted">No tienes un panel específico asignado. Puedes explorar las opciones generales.</p>
                         @endif
-
-                        {{-- Enlace común para todos los usuarios autenticados --}}
-                        <div class="mt-4">
-                            <a href="{{ route('perfil.show') }}" class="btn btn-outline-primary mx-1 mb-2">
-                                <i class="fas fa-user-circle me-2"></i>Ver Mi Perfil
-                            </a>
-                            <a href="{{ route('logout') }}" class="btn btn-outline-danger mx-1 mb-2"
-                               onclick="event.preventDefault(); document.getElementById('logout-form-home').submit();">
-                                <i class="fas fa-sign-out-alt me-2"></i>Cerrar Sesión
-                            </a>
-                            <form id="logout-form-home" action="{{ route('logout') }}" method="POST" class="d-none">
-                                @csrf
-                            </form>
-                        </div>
+                        <a href="{{ route('logout') }}" class="btn btn-light text-danger" 
+                           onclick="event.preventDefault(); document.getElementById('logout-form-home').submit();">
+                            <i class="fas fa-sign-out-alt me-2"></i>Cerrar Sesión
+                        </a>
+                        <form id="logout-form-home" action="{{ route('logout') }}" method="POST" class="d-none">
+                            @csrf
+                        </form>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<style>
+.hover-shadow-md {
+    transition: box-shadow 0.3s ease;
+}
+.hover-shadow-md:hover {
+    box-shadow: 0 .5rem 1rem rgba(0,0,0,.1)!important;
+}
+</style>
 @endsection
