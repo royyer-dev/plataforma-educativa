@@ -29,7 +29,7 @@
                                 <input id="nombre" type="text" 
                                        class="form-control @error('nombre') is-invalid @enderror" 
                                        name="nombre" value="{{ old('nombre') }}" required 
-                                       autocomplete="given-name" autofocus
+                                       autocomplete="nombre" autofocus
                                        placeholder="Ingresa tu nombre o nombres">
                             </div>
                             @error('nombre')
@@ -46,7 +46,7 @@
                                 <input id="apellidos" type="text" 
                                        class="form-control @error('apellidos') is-invalid @enderror" 
                                        name="apellidos" value="{{ old('apellidos') }}" 
-                                       autocomplete="family-name"
+                                       autocomplete="apellidos"
                                        placeholder="Ingresa tus apellidos (opcional)">
                             </div>
                             @error('apellidos')
@@ -134,7 +134,7 @@
                                 <span class="input-group-text"><i class="fas fa-lock"></i></span>
                                 <input id="password" type="password" 
                                        class="form-control @error('password') is-invalid @enderror" 
-                                       name="password" required autocomplete="new-password"
+                                       name="password" required autocomplete="nueva-contraseña"
                                        placeholder="Mínimo 8 caracteres">
                             </div>
                             @error('password')
@@ -149,7 +149,7 @@
                             <div class="input-group">
                                 <span class="input-group-text"><i class="fas fa-lock"></i></span>
                                 <input id="password-confirm" type="password" class="form-control" 
-                                       name="password_confirmation" required autocomplete="new-password"
+                                       name="password_confirmation" required autocomplete="nueva-contraseña"
                                        placeholder="Repite tu contraseña">
                             </div>
                         </div>
