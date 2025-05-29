@@ -21,6 +21,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Forzar HTTPS solo en producción
+        if (config('app.env') === 'production') {
+            \URL::forceScheme('https');
+        }
+
         // --- vvv AÑADIR ESTA LÍNEA PARA REGISTRAR EL COMPOSER vvv ---
         View::composer('layouts.app', NotificationComposer::class);
         // --- ^^^ FIN LÍNEA AÑADIDA ^^^ ---
