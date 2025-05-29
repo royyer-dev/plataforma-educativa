@@ -204,15 +204,27 @@
 
                         {{-- Campo para Imagen --}}
                         <div class="mb-3">
-                            <label for="ruta_imagen_curso" class="form-label fw-bold">Imagen del Curso (Opcional)</label>
-                            <input class="form-control @error('ruta_imagen_curso') is-invalid @enderror" type="file" id="ruta_imagen_curso" name="ruta_imagen_curso" accept="image/jpeg,image/png,image/gif,image/webp">
-                            <small class="form-text text-muted">Sube una nueva imagen para reemplazar la actual, o deja vacío para conservarla.</small>
+                            <label for="ruta_imagen_curso" class="form-label fw-bold">
+                                <i class="fas fa-image me-2 text-primary"></i>Imagen del Curso
+                            </label>
+                            <input class="form-control @error('ruta_imagen_curso') is-invalid @enderror" 
+                                   type="file" 
+                                   id="ruta_imagen_curso" 
+                                   name="ruta_imagen_curso" 
+                                   accept="image/jpeg,image/png,image/gif,image/webp">
+                            <small class="form-text text-muted">Formatos permitidos: JPG, PNG, GIF, WEBP. Tamaño máximo: 2MB</small>
+                            
                             @if($curso->ruta_imagen_curso)
                                 <div class="mt-2">
                                     <small>Imagen actual:</small><br>
-                                    <img src="{{ Storage::url($curso->ruta_imagen_curso) }}" alt="Imagen actual del curso {{ $curso->titulo }}" style="max-height: 100px; border-radius: .25rem; margin-top: 5px;">
+                                    <img src="{{ asset('storage/' . $curso->ruta_imagen_curso) }}" 
+                                         alt="Imagen actual del curso {{ $curso->titulo }}" 
+                                         class="mt-2 rounded"
+                                         style="max-height: 100px;"
+                                         onerror="this.onerror=null; this.src='{{ asset('images/default_course.png') }}';">
                                 </div>
                             @endif
+                            
                             @error('ruta_imagen_curso')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror

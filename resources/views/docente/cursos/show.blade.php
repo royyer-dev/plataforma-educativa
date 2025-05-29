@@ -168,12 +168,16 @@
             {{-- Course Image --}}
             @if($curso->ruta_imagen_curso)
                 <div class="col-md-4">
-                    <img src="{{ Storage::url($curso->ruta_imagen_curso) }}" class="img-fluid rounded-start" alt="Imagen de {{ $curso->titulo }}" style="object-fit: cover; height: 100%; max-height: 300px;">
+                    <img src="{{ asset('storage/' . $curso->ruta_imagen_curso) }}" 
+                         class="img-fluid rounded-start" 
+                         alt="Imagen de {{ $curso->titulo }}" 
+                         style="object-fit: cover; height: 100%; max-height: 300px;"
+                         onerror="this.onerror=null; this.src='{{ asset('images/default_course.png') }}';">
                 </div>
             @else
                 {{-- Placeholder if no image --}}
                 <div class="col-md-4 bg-light d-flex align-items-center justify-content-center" style="min-height: 200px;">
-                    <i class="fas fa-image fa-5x text-secondary opacity-50"></i>
+                    <i class="fas fa-image fa-3x text-secondary"></i>
                 </div>
             @endif
 

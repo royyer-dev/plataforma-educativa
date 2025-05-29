@@ -51,29 +51,48 @@ class CursoController extends Controller
             'titulo' => 'required|string|max:255',
             'codigo_curso' => 'nullable|string|max:20|unique:cursos,codigo_curso',
             'descripcion' => 'nullable|string',
-            'carrera_id' => 'nullable|integer|exists:carreras,id', // Usar carrera_id y carreras
+            'carrera_id' => 'nullable|integer|exists:carreras,id',
             'estado' => 'required|in:borrador,publicado,archivado',
             'fecha_inicio' => 'nullable|date',
             'fecha_fin' => 'nullable|date|after_or_equal:fecha_inicio',
-            'ruta_imagen_curso' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048', // Validación para la imagen
+            'ruta_imagen_curso' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
         ]);
 
         $docente = Auth::user();
 
-        // --- vvv MANEJO DE SUBIDA DE IMAGEN vvv ---
-        if ($request->hasFile('ruta_imagen_curso')) {
-            // Guardar la imagen en 'storage/app/public/cursos_imagenes'
-            // El método store devuelve la ruta relativa al disco 'public'
-            $path = $request->file('ruta_imagen_curso')->store('cursos_imagenes', 'public');
-            $validatedData['ruta_imagen_curso'] = $path; // Guardar la ruta en los datos validados
+        try {
+            // Manejo de la imagen
+            if ($request->hasFile('ruta_imagen_curso')) {
+                $image = $request->file('ruta_imagen_curso');
+                
+                // Generar un nombre único para la imagen
+                $imageName = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
+                
+                // Guardar la imagen en el disco público
+                $path = $image->storeAs('cursos_imagenes', $imageName, 'public');
+                
+                if (!$path) {
+                    throw new \Exception('No se pudo guardar la imagen del curso.');
+                }
+                
+                $validatedData['ruta_imagen_curso'] = $path;
+            }
+
+            $curso = Curso::create($validatedData);
+            $curso->profesores()->attach($docente->id);
+
+            return redirect()->route('docente.cursos.index')
+                            ->with('status', '¡Curso creado exitosamente!');
+        } catch (\Exception $e) {
+            // Si algo sale mal, eliminar la imagen si se subió
+            if (isset($path)) {
+                Storage::disk('public')->delete($path);
+            }
+            
+            return redirect()->back()
+                            ->withInput()
+                            ->with('error', 'Error al crear el curso: ' . $e->getMessage());
         }
-        // --- ^^^ FIN MANEJO DE IMAGEN ^^^ ---
-
-        $curso = Curso::create($validatedData);
-        $curso->profesores()->attach($docente->id);
-
-        return redirect()->route('docente.cursos.index')
-                         ->with('status', '¡Curso creado exitosamente!');
     }
 
     /**
@@ -103,33 +122,52 @@ class CursoController extends Controller
     public function update(Request $request, Curso $curso): RedirectResponse
     {
         $this->authorizeTeacherAccess($curso);
+
         $validatedData = $request->validate([
             'titulo' => 'required|string|max:255',
             'codigo_curso' => 'nullable|string|max:20|unique:cursos,codigo_curso,' . $curso->id,
             'descripcion' => 'nullable|string',
-            'carrera_id' => 'nullable|integer|exists:carreras,id', // Usar carrera_id y carreras
+            'carrera_id' => 'nullable|integer|exists:carreras,id',
             'estado' => 'required|in:borrador,publicado,archivado',
             'fecha_inicio' => 'nullable|date',
             'fecha_fin' => 'nullable|date|after_or_equal:fecha_inicio',
-            'ruta_imagen_curso' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048', // Validación para la imagen
+            'ruta_imagen_curso' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
         ]);
 
-        // --- vvv MANEJO DE ACTUALIZACIÓN DE IMAGEN vvv ---
-        if ($request->hasFile('ruta_imagen_curso')) {
-            // 1. Borrar la imagen antigua si existe
-            if ($curso->ruta_imagen_curso) {
-                Storage::disk('public')->delete($curso->ruta_imagen_curso);
+        try {
+            if ($request->hasFile('ruta_imagen_curso')) {
+                // Eliminar la imagen anterior si existe
+                if ($curso->ruta_imagen_curso) {
+                    Storage::disk('public')->delete($curso->ruta_imagen_curso);
+                }
+
+                $image = $request->file('ruta_imagen_curso');
+                $imageName = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
+                
+                // Guardar la nueva imagen
+                $path = $image->storeAs('cursos_imagenes', $imageName, 'public');
+                
+                if (!$path) {
+                    throw new \Exception('No se pudo guardar la imagen del curso.');
+                }
+                
+                $validatedData['ruta_imagen_curso'] = $path;
             }
-            // 2. Guardar la nueva imagen
-            $path = $request->file('ruta_imagen_curso')->store('cursos_imagenes', 'public');
-            $validatedData['ruta_imagen_curso'] = $path;
+
+            $curso->update($validatedData);
+
+            return redirect()->route('docente.cursos.show', $curso->id)
+                            ->with('status', '¡Curso actualizado exitosamente!');
+        } catch (\Exception $e) {
+            // Si algo sale mal y se subió una nueva imagen, eliminarla
+            if (isset($path)) {
+                Storage::disk('public')->delete($path);
+            }
+            
+            return redirect()->back()
+                            ->withInput()
+                            ->with('error', 'Error al actualizar el curso: ' . $e->getMessage());
         }
-        // --- ^^^ FIN MANEJO DE IMAGEN ^^^ ---
-
-        $curso->update($validatedData);
-
-        return redirect()->route('docente.cursos.show', $curso->id)
-                         ->with('status', '¡Curso actualizado exitosamente!');
     }
 
     /**
