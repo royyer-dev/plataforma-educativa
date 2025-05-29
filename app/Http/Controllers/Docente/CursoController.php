@@ -136,16 +136,18 @@ class CursoController extends Controller
 
         try {
             if ($request->hasFile('ruta_imagen_curso')) {
-                // Eliminar la imagen anterior si existe
-                if ($curso->ruta_imagen_curso) {
-                    Storage::disk('public')->delete($curso->ruta_imagen_curso);
-                }
-
                 $image = $request->file('ruta_imagen_curso');
+                
+                // Generar un nombre único para la imagen
                 $imageName = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
                 
+                // Borrar la imagen anterior si existe
+                if ($curso->ruta_imagen_curso && Storage::disk('public')->exists($curso->ruta_imagen_curso)) {
+                    Storage::disk('public')->delete($curso->ruta_imagen_curso);
+                }
+                
                 // Guardar la nueva imagen
-                $path = $image->storeAs('cursos_imagenes', $imageName, 'public');
+                $path = $request->file('ruta_imagen_curso')->storeAs('cursos_imagenes', $imageName, 'public');
                 
                 if (!$path) {
                     throw new \Exception('No se pudo guardar la imagen del curso.');
@@ -158,8 +160,9 @@ class CursoController extends Controller
 
             return redirect()->route('docente.cursos.show', $curso->id)
                             ->with('status', '¡Curso actualizado exitosamente!');
+                            
         } catch (\Exception $e) {
-            // Si algo sale mal y se subió una nueva imagen, eliminarla
+            // Si algo sale mal y se subió una nueva imagen, intentar eliminarla
             if (isset($path)) {
                 Storage::disk('public')->delete($path);
             }

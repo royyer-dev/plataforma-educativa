@@ -299,10 +299,17 @@
                                             <span class="badge bg-info ms-1">Módulo: {{ Str::limit(optional($material->modulo)->titulo, 20) }}</span>
                                         @endif
                                         <p class="mb-1 small text-muted">{{ Str::limit($material->descripcion, 100) }}</p>
-                                        @if($material->tipo_material == 'enlace' || $material->tipo_material == 'video')
+                                        @if($material->tipo_material == 'archivo' && $material->ruta_archivo)
+                                            <div class="d-grid">
+                                                <a href="{{ asset('storage/' . $material->ruta_archivo) }}" 
+                                                   target="_blank" 
+                                                   class="btn btn-sm btn-outline-primary"
+                                                   onclick="window.open(this.href); return false;">
+                                                    <i class="fas fa-download me-1"></i>Ver/Descargar archivo
+                                                </a>
+                                            </div>
+                                        @elseif($material->tipo_material == 'enlace' || $material->tipo_material == 'video')
                                             <small><a href="{{ $material->enlace_url }}" target="_blank" rel="noopener noreferrer">Ver enlace</a></small>
-                                        @elseif($material->tipo_material == 'archivo' && $material->ruta_archivo)
-                                            <small><a href="{{ Storage::url($material->ruta_archivo) }}" target="_blank">Ver/Descargar archivo</a></small>
                                         @endif
                                     </div>
                                     <div class="text-nowrap">

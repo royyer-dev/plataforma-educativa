@@ -37,7 +37,6 @@ class MaterialController extends Controller
     {
         $this->authorizeTeacherAccess($curso);
         
-        // Validate all required fields
         $rules = [
             'titulo' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
@@ -45,7 +44,6 @@ class MaterialController extends Controller
             'tipo_material' => 'required|in:archivo,enlace,texto,video',
         ];
 
-        // Add conditional validation rules based on material type
         switch ($request->tipo_material) {
             case 'archivo':
                 $rules['ruta_archivo'] = 'required|file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,zip,jpg,jpeg,png,gif|max:10240';
@@ -60,33 +58,55 @@ class MaterialController extends Controller
         }
 
         $validatedData = $request->validate($rules);
+        
+        try {
+            $validatedData['curso_id'] = $curso->id;
+            $validatedData['creado_por'] = Auth::id();
+            $validatedData['modulo_id'] = $request->input('modulo_id') ?: null;
 
-        // Añadir IDs y limpiar/preparar datos
-        $validatedData['curso_id'] = $curso->id;
-        $validatedData['creado_por'] = Auth::id();
-        $validatedData['modulo_id'] = $request->input('modulo_id') ?: null; // Asigna null si está vacío
+            if ($request->hasFile('ruta_archivo') && $validatedData['tipo_material'] === 'archivo') {
+                $file = $request->file('ruta_archivo');
+                
+                // Generar un nombre único para el archivo
+                $fileName = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+                
+                // Asegurarse de que el directorio existe
+                $directory = "cursos/{$curso->id}/materiales";
+                Storage::disk('public')->makeDirectory($directory);
+                
+                // Guardar el archivo usando storeAs para tener control sobre el nombre
+                $path = $file->storeAs($directory, $fileName, 'public');
+                
+                if (!$path) {
+                    throw new \Exception('No se pudo guardar el archivo.');
+                }
+                
+                $validatedData['ruta_archivo'] = $path;
+            }
 
-        // Manejo de Subida de Archivo
-        if ($request->hasFile('ruta_archivo') && $validatedData['tipo_material'] === 'archivo') {
-            $path = $request->file('ruta_archivo')->store("cursos/{$curso->id}/materiales", 'public');
-            $validatedData['ruta_archivo'] = $path; // Guarda la ruta relativa
-        } else {
-             unset($validatedData['ruta_archivo']); // No guardar este campo si no es archivo
+            // Limpiar campos no utilizados según el tipo
+            if ($validatedData['tipo_material'] !== 'enlace' && $validatedData['tipo_material'] !== 'video') {
+                $validatedData['enlace_url'] = null;
+            }
+            if ($validatedData['tipo_material'] !== 'texto') {
+                $validatedData['contenido_texto'] = null;
+            }
+
+            Material::create($validatedData);
+
+            return redirect()->route('docente.cursos.show', $curso->id)
+                            ->with('status', '¡Material añadido exitosamente!');
+                            
+        } catch (\Exception $e) {
+            // Si algo sale mal y se subió un archivo, eliminarlo
+            if (isset($path)) {
+                Storage::disk('public')->delete($path);
+            }
+            
+            return redirect()->back()
+                            ->withInput()
+                            ->with('error', 'Error al crear el material: ' . $e->getMessage());
         }
-
-        // Limpiar campos no relevantes para el tipo seleccionado
-        if ($validatedData['tipo_material'] !== 'enlace' && $validatedData['tipo_material'] !== 'video') {
-             $validatedData['enlace_url'] = null;
-        }
-        if ($validatedData['tipo_material'] !== 'texto') {
-            $validatedData['contenido_texto'] = null;
-        }
-
-        // Crear el material
-        Material::create($validatedData);
-
-        return redirect()->route('docente.cursos.show', $curso->id)
-                         ->with('status', '¡Material añadido exitosamente!');
     }
 
     /**
