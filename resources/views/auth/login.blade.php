@@ -32,7 +32,7 @@
                                 <input id="email" type="email" 
                                        class="form-control @error('email') is-invalid @enderror" 
                                        name="email" value="{{ old('email') }}" 
-                                       required autocomplete="email" autofocus
+                                       required autocomplete="correo-electronico" autofocus
                                        placeholder="tu.correo@ejemplo.com">
                             </div>
                             @error('email')
@@ -52,7 +52,7 @@
                                 <input id="password" type="password" 
                                        class="form-control @error('password') is-invalid @enderror" 
                                        name="password" required 
-                                       autocomplete="current-password"
+                                       autocomplete="contraseña-actual"
                                        placeholder="Ingresa tu contraseña">
                             </div>
                             @error('password')
