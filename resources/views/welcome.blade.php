@@ -123,7 +123,7 @@
     <nav class="navbar navbar-expand-lg navbar-light sticky-top navbar-welcome shadow-sm">
         <div class="container">
             <a class="navbar-brand" href="{{ url('/') }}">
-                <img src="{{ asset('images/logo_mitec.png') }}" alt="{{ config('app.name', 'MiTec') }} Logo" class="navbar-brand-logo">
+                <img src="{{ secure_asset('images/logo_mitec.png') }}" alt="{{ config('app.name', 'MiTec') }} Logo" class="navbar-brand-logo" onerror="this.onerror=null; this.src='{{ secure_asset('images/default_logo.png') }}';">
                 <span class="brand-text">{{ config('app.name', 'MiTec') }}</span>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#welcomeNavbar" aria-controls="welcomeNavbar" aria-expanded="false" aria-label="Toggle navigation">

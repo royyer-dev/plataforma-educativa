@@ -18,7 +18,7 @@
                     <div class="row g-0">
                         {{-- Imagen de Fondo/Decorativa --}}
                         <div class="col-md-4 bg-primary bg-gradient d-flex align-items-center justify-content-center py-5">
-                            <img src="{{ asset('images/logo_mitec.png') }}" alt="Logo MiTec" class="img-fluid p-4" style="max-width: 200px;">
+                            <img src="{{ secure_asset('images/logo_mitec.png') }}" alt="{{ config('app.name', 'MiTec') }} Logo" class="img-fluid p-4" style="max-width: 200px;" onerror="this.onerror=null; this.src='{{ secure_asset('images/default_logo.png') }}';">
                         </div>
                         
                         {{-- Contenido de Bienvenida --}}

@@ -191,7 +191,7 @@
             <div class="container">
                 {{-- Logo y Nombre --}}
                 <a class="navbar-brand" href="{{ url('/') }}">
-                    <img src="{{ asset('images/logo_mitec.png') }}" alt="Logo" class="navbar-brand-logo">
+                    <img src="{{ secure_asset('images/logo_mitec.png') }}" alt="{{ config('app.name', 'MiTec') }}" class="navbar-brand-logo" onerror="this.onerror=null; this.src='{{ secure_asset('images/default_logo.png') }}';">
                     <span>{{ config('app.name', 'MiTec') }}</span>
                 </a>
 
